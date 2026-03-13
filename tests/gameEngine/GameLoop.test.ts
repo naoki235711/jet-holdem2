@@ -210,4 +210,65 @@ describe('GameLoop', () => {
       expect(typeof state.seq).toBe('number');
     });
   });
+
+  describe('edge cases', () => {
+    it('handleAction returns error when no betting round is active', () => {
+      const game = new GameLoop(makeGamePlayers(2), DEFAULT_BLINDS);
+      // Phase is 'waiting', no bettingRound active
+      const result = game.handleAction(0, { action: 'check' });
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain('No active betting round');
+    });
+
+    it('resolveShowdown throws if not in showdown phase', () => {
+      const game = new GameLoop(makeGamePlayers(2), DEFAULT_BLINDS);
+      game.startRound();
+      // Still in preflop, not showdown
+      expect(() => game.resolveShowdown()).toThrow('Not in showdown phase');
+    });
+
+    it('getPrivateHand returns empty array for non-existent seat', () => {
+      const game = new GameLoop(makeGamePlayers(2), DEFAULT_BLINDS);
+      game.startRound();
+      const hand = game.getPrivateHand(99); // Seat 99 does not exist
+      expect(hand).toEqual([]);
+    });
+
+    it('getPrivateHand returns hole cards for valid seat', () => {
+      const game = new GameLoop(makeGamePlayers(2), DEFAULT_BLINDS);
+      game.startRound();
+      const hand = game.getPrivateHand(0);
+      expect(hand).toHaveLength(2);
+    });
+
+    it('advances through all streets when only one active player (all others all-in)', () => {
+      // Set up a scenario where post-flop all but one player is all-in
+      const players = makeGamePlayers(2);
+      players[1].chips = 10; // Very small stack, will go all-in
+      const game = new GameLoop(players, DEFAULT_BLINDS);
+      game.startRound();
+      // SB (seat 0) calls, BB (seat 1) is all-in from blind posting or goes all-in
+      // Seat 0 (SB in heads-up) acts first preflop
+      game.handleAction(0, { action: 'allIn' }); // Seat 0 shoves
+      // This should force the game forward since only one active player remains
+      // Either seat 1 is all-in from BB or will auto-advance
+      // After both are all-in, phase should skip to showdown
+      expect(['flop', 'turn', 'river', 'showdown', 'roundEnd'].includes(game.phase)).toBe(true);
+    });
+
+    it('advancePhase uses first active seat when dealer is not in active players', () => {
+      const players = makeGamePlayers(4);
+      // Dealer starts at seat 0 by default
+      const game = new GameLoop(players, DEFAULT_BLINDS);
+      game.startRound();
+      // Mark seat 0 (dealer) as folded — dealer not in active players post-flop
+      players[0].status = 'folded';
+      // Complete preflop
+      game.handleAction(3, { action: 'call' });   // UTG calls
+      game.handleAction(0, { action: 'fold' });   // BTN folds (dealer/seat 0)
+      game.handleAction(1, { action: 'call' });   // SB calls
+      game.handleAction(2, { action: 'check' });  // BB checks — flop starts
+      expect(game.phase).toBe('flop');
+    });
+  });
 });

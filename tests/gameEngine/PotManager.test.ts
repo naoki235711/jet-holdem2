@@ -126,6 +126,28 @@ describe('PotManager', () => {
     });
   });
 
+  describe('edge cases', () => {
+    it('collectBets with empty array does nothing', () => {
+      pm.collectBets([]);
+      expect(pm.getPots()).toHaveLength(0);
+      expect(pm.getTotal()).toBe(0);
+    });
+
+    it('handles duplicate all-in amounts (same boundary twice)', () => {
+      // Two players all-in for the same amount — boundary de-duplicated
+      pm.collectBets([
+        { seat: 0, amount: 200, isAllIn: true },
+        { seat: 1, amount: 200, isAllIn: true },
+        { seat: 2, amount: 200, isAllIn: false },
+      ]);
+      const pots = pm.getPots();
+      // Single pot of 600, all eligible
+      expect(pots).toHaveLength(1);
+      expect(pots[0].amount).toBe(600);
+      expect(pots[0].eligible).toEqual([0, 1, 2]);
+    });
+  });
+
   describe('getTotal', () => {
     it('returns sum of all pots', () => {
       pm.collectBets([

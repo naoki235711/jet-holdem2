@@ -1,4 +1,4 @@
-import { rankValue, parseCard, allCards, compareValues } from '../../src/gameEngine/Card';
+import { rankValue, parseCard, allCards, compareValues, cardRankValue } from '../../src/gameEngine/Card';
 import { Card } from '../../src/gameEngine/types';
 
 describe('Card', () => {
@@ -49,6 +49,15 @@ describe('Card', () => {
 
     it('returns 0 for equal values', () => {
       expect(compareValues([9, 14, 13], [9, 14, 13])).toBe(0);
+    });
+  });
+
+  describe('cardRankValue', () => {
+    it('returns numeric rank value for a card string', () => {
+      expect(cardRankValue('Ah')).toBe(14);
+      expect(cardRankValue('2s')).toBe(2);
+      expect(cardRankValue('Td')).toBe(10);
+      expect(cardRankValue('Kc')).toBe(13);
     });
   });
 });

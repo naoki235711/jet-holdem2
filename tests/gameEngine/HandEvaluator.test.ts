@@ -144,4 +144,14 @@ describe('HandEvaluator', () => {
       expect(compareHands(hand1, hand2)).toBe(0);
     });
   });
+
+  describe('error handling', () => {
+    it('evaluateHand throws for non-5-card input', () => {
+      expect(() => evaluateHand(['Ah', 'Kd', '9s'] as Card[])).toThrow('evaluateHand requires exactly 5 cards');
+    });
+
+    it('evaluate7Cards throws for non-7-card input', () => {
+      expect(() => evaluate7Cards(['Ah', 'Kd', '9s', '7c', '3h'] as Card[])).toThrow('evaluate7Cards requires exactly 7 cards');
+    });
+  });
 });

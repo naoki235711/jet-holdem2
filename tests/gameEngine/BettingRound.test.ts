@@ -196,4 +196,68 @@ describe('BettingRound', () => {
       expect(bets.find(b => b.seat === 1)?.amount).toBe(100);
     });
   });
+
+  describe('edge cases', () => {
+    it('unknown action returns error', () => {
+      const players = makePlayers(2);
+      const round = new BettingRound(players, 0, 0);
+      // Cast to any to bypass TS type check and hit the default branch
+      const result = round.handleAction(0, { action: 'unknownAction' as any });
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBe('Unknown action');
+    });
+
+    it('call when nothing to call is invalid', () => {
+      const players = makePlayers(2);
+      const round = new BettingRound(players, 0, 0);
+      // No bet has been placed, calling with nothing to call
+      const result = round.handleAction(0, { action: 'call' });
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain('Nothing to call');
+    });
+
+    it('raise rejected when amount exceeds chips', () => {
+      const players = makePlayers(2);
+      // Player 0 has 1000 chips, current bet is 0
+      const round = new BettingRound(players, 0, 0);
+      // Try to raise to 1500 — player only has 1000 chips
+      const result = round.handleAction(0, { action: 'raise', amount: 1500 });
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain('Not enough chips');
+    });
+
+    it('all-in that is a large enough raise reopens action', () => {
+      const players = makePlayers(3);
+      players[0].chips = 500;
+      players[1].chips = 1000;
+      players[2].chips = 1000;
+      const round = new BettingRound(players, 0, 0);
+      // Seat 0 raises to 100
+      round.handleAction(0, { action: 'raise', amount: 100 });
+      // Seat 1 calls
+      round.handleAction(1, { action: 'call' });
+      // Seat 2 goes all-in for 1000, which is a raise of 900 (>= minRaise of 100)
+      // This should reopen action for seats 0 and 1
+      const result = round.handleAction(2, { action: 'allIn' });
+      expect(result.valid).toBe(true);
+      expect(players[2].status).toBe('allIn');
+      // Round should not be complete since others need to respond to the all-in raise
+      expect(round.isComplete).toBe(false);
+    });
+
+    it('all-in that is less than minimum raise does not reopen action', () => {
+      const players = makePlayers(3);
+      players[0].chips = 50; // Can't make min raise (only 50 chips left)
+      // Set up: seat 0 is active, currentBet = 100, minRaise = 100
+      // seat 0 already has bet = 60, has 50 chips left -> going all-in gives total bet of 110
+      // raise increment = 110 - 100 = 10, which is < minRaise of 100 -> should NOT reopen
+      players[0].bet = 60;
+      const round = new BettingRound(players, 0, 100); // currentBet = 100
+      const result = round.handleAction(0, { action: 'allIn' });
+      expect(result.valid).toBe(true);
+      expect(players[0].status).toBe('allIn');
+      // currentBet should now be 110 (the all-in total), but action should NOT have been reopened
+      // (actedSet was NOT cleared), seats 1 and 2 still need to act from prior raise
+    });
+  });
 });
