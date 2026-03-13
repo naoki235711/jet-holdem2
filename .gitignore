@@ -5,10 +5,12 @@ node_modules/
 .expo/
 dist/
 web-build/
+expo-env.d.ts
 
 # React Native
 ios/
 android/
+.kotlin/
 
 # EAS
 .eas/
@@ -46,6 +48,7 @@ coverage/
 *.p8
 *.p12
 *.key
+*.pem
 *.mobileprovision
 *.orig.*
 
