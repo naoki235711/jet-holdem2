@@ -18,7 +18,9 @@
 
 - **フレームワーク:** React Native (Expo Development Build)
 - **言語:** TypeScript
-- **BLEライブラリ:** react-native-ble-plx
+- **BLEライブラリ:**
+  - Central側: react-native-ble-plx
+  - Peripheral側 (ホスト): react-native-ble-peripheral（react-native-ble-plxはCentral専用のため、GATT Server機能には別ライブラリが必要）
 - **テスト:** Jest
 - **iOSビルド:** EAS Build (クラウド) → TestFlight配信
 - **Androidビルド:** ローカル or EAS Build
@@ -71,29 +73,102 @@
 Service: JetHoldemPoker (カスタムUUID)
 │
 ├── Characteristic: GameState (Read, Notify)
-│   → ホスト → クライアント
+│   → ホスト → 全クライアント
 │   → テーブル状態（フェーズ、コミュニティカード、ポット、各プレイヤーのチップ・ステータス）
 │
-├── Characteristic: PrivateHand (Read, Notify)
-│   → ホスト → 各クライアント個別
-│   → そのプレイヤーだけの手札（他人には見えない）
+├── Characteristic: PrivateHand0 (Read, Notify) — Seat 0専用
+├── Characteristic: PrivateHand1 (Read, Notify) — Seat 1専用
+├── Characteristic: PrivateHand2 (Read, Notify) — Seat 2専用
+├── Characteristic: PrivateHand3 (Read, Notify) — Seat 3専用
+│   → ホスト → 該当プレイヤーのみ
+│   → そのプレイヤーだけの手札
 │
 ├── Characteristic: PlayerAction (Write)
 │   → クライアント → ホスト
 │   → プレイヤーのアクション（fold, check, call, raise, all-in + 金額）
 │
 └── Characteristic: LobbyControl (Read, Write, Notify)
-    → 接続管理（参加/離脱/ゲーム開始）
+    → 接続管理（参加/離脱/ゲーム開始/プロトコルバージョン交換）
 ```
 
 ### Private Hand Distribution
 
-BLE GATTのNotifyは接続中の全クライアントに同じ値を送る。手札を個別に送るためにプレイヤーIDベースのフィルタリングを使用:
+各プレイヤーに専用のPrivateHand Characteristicを割り当てることで、暗号化なしで手札の秘匿性を確保:
 
-- 接続時に各クライアントにプレイヤーID（seat 0〜3）を割り当てる
-- PrivateHand Characteristicには全4人分の手札を暗号化して格納
-- 各クライアントは自分のseat IDに対応する部分だけを復号できる
-- 暗号キーは接続時のハンドシェイクで個別に交換（シンプルな共有鍵方式）
+- 接続時のLobbyControlハンドシェイクで各クライアントにseat ID（0〜3）を割り当てる
+- 各クライアントは自分のseat IDに対応するPrivateHand Characteristicのみsubscribeする
+- ホストは各PrivateHand Characteristicに該当プレイヤーの手札のみを書き込む
+- 他のseatのCharacteristicをsubscribeしても、アプリケーション層でフィルタリング（悪意のある改造アプリへの完全な防御は友人間のローカルゲームのスコープ外とする）
+
+### Protocol Version
+
+LobbyControlハンドシェイク時にプロトコルバージョンを交換:
+
+- ホストがサービス広告時にプロトコルバージョンをadvertise data に含める
+- クライアントは接続時にバージョンを確認し、非互換の場合は接続を拒否してユーザーにアップデートを促す
+- 初期バージョン: `1`
+
+### Lobby Control Protocol
+
+```json
+// クライアント → ホスト (Join Request)
+{
+  "type": "join",
+  "protocolVersion": 1,
+  "playerName": "Alice"
+}
+
+// ホスト → クライアント (Join Response)
+{
+  "type": "joinResponse",
+  "accepted": true,
+  "seat": 2,
+  "players": [
+    {"seat": 0, "name": "Host", "ready": true},
+    {"seat": 2, "name": "Alice", "ready": false}
+  ]
+}
+
+// ホスト → クライアント (Join Rejected - room full)
+{
+  "type": "joinResponse",
+  "accepted": false,
+  "reason": "Room is full"
+}
+
+// クライアント → ホスト (Ready)
+{"type": "ready", "seat": 2}
+
+// ホスト → 全員 (Game Starting)
+{"type": "gameStart", "blinds": {"sb": 5, "bb": 10}}
+
+// ホスト → 全員 (Player Update - join/leave通知)
+{
+  "type": "playerUpdate",
+  "players": [
+    {"seat": 0, "name": "Host", "ready": true},
+    {"seat": 1, "name": "Bob", "ready": true},
+    {"seat": 2, "name": "Alice", "ready": true}
+  ]
+}
+```
+
+**Lobby State Machine:**
+```
+ADVERTISING → (client connects) → SEAT_ASSIGNMENT → (all ready + host starts) → GAME_START
+                                        ↑                    │
+                                        └── (new client) ────┘
+
+Max 4 connections. 5th client rejected with "Room is full".
+Minimum 2 players to start.
+```
+
+### Card Notation
+
+カードは2文字の文字列で表現:
+- **ランク:** `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `T`, `J`, `Q`, `K`, `A`
+- **スート:** `h` (hearts), `d` (diamonds), `s` (spades), `c` (clubs)
+- 例: `Ah` = Ace of Hearts, `Td` = 10 of Diamonds, `2c` = 2 of Clubs
 
 ### Message Format (JSON)
 
@@ -107,6 +182,7 @@ BLE GATTのNotifyは接続中の全クライアントに同じ値を送る。手
   "currentBet": 100,
   "activePlayer": 2,
   "dealer": 0,
+  "actionTimeout": 30,
   "players": [
     {"seat": 0, "chips": 900, "status": "active", "bet": 100},
     {"seat": 1, "chips": 0, "status": "folded", "bet": 50},
@@ -115,20 +191,38 @@ BLE GATTのNotifyは接続中の全クライアントに同じ値を送る。手
   ]
 }
 
-// PlayerAction (クライアント → ホスト)
+// PrivateHand (ホスト → 個別プレイヤー)
 {
-  "seat": 2,
+  "cards": ["Kh", "Js"]
+}
+
+// PlayerAction (クライアント → ホスト)
+// NOTE: seat フィールドはクライアントが送信するが、ホスト側ではBLE接続IDから
+// seatを特定するため、このフィールドは無視される（なりすまし防止）
+{
   "action": "raise",
   "amount": 200
 }
 ```
 
-### Data Size Considerations
+### Data Size & Chunking Protocol
 
-- GameStateのJSONは最大約500バイト
-- BLE 4.2以降のMTUは512バイトまでネゴシエーション可能
-- iOSデフォルトは185バイトだがMTUネゴシエーションで拡張
-- 超過する場合はチャンク分割して送信
+**最悪ケースのMTU:** 185バイト（iOS デフォルト）を前提に設計する。MTUネゴシエーションでより大きな値が得られた場合は自動的に活用するが、依存しない。
+
+**チャンク分割プロトコル:**
+
+GameStateのJSONが最大約400バイトになるため、MTUが小さい場合はチャンク分割が必要:
+
+```
+Chunk header (3 bytes): [chunkIndex (1 byte)] [totalChunks (1 byte)] [reserved (1 byte)]
+Chunk payload: remaining MTU - 3 bytes
+```
+
+- 送信側: JSONをUTF-8バイト列に変換 → MTU - 3バイトずつに分割 → 各チャンクにヘッダを付与して順次送信
+- 受信側: chunkIndex順にバッファに蓄積 → totalChunks分揃ったら結合 → JSONパース
+- 全チャンクが5秒以内に届かない場合はバッファを破棄（部分データ防止）
+
+**代替案:** ペイロードが将来的に大きくなる場合は、MessagePackなどのバイナリフォーマットへの移行を検討する。現時点ではJSONの可読性を優先。
 
 ---
 
@@ -149,13 +243,13 @@ gameEngine/
 ### State Machine
 
 ```
-WAITING_FOR_PLAYERS
-    │ (4人揃う or ホストが開始)
+WAITING_FOR_PLAYERS (最低2人、最大4人)
+    │ (ホストが開始)
     ▼
 DEAL_HANDS ─── 各プレイヤーに2枚配布
     │
     ▼
-PREFLOP ─── SB/BB強制ベット → UTG からアクション
+PREFLOP ─── SB/BB強制ベット → アクション開始
     │ (全員アクション完了)
     ▼
 FLOP ─── コミュニティカード3枚オープン → ベッティング
@@ -170,10 +264,32 @@ RIVER ─── 1枚オープン → ベッティング
 SHOWDOWN ─── ハンド評価 → 勝者決定 → ポット分配
     │
     ▼
-ROUND_END ─── ディーラーボタン移動 → DEAL_HANDS に戻る
+ROUND_END ─── ディーラーボタン移動
+    │
+    ├── 2人以上がチップ残高 > 0 → DEAL_HANDS に戻る
+    └── 1人だけが残り → GAME_OVER
+              │
+              ▼
+         勝者表示 → ロビーに戻る
 ```
 
 **Early termination:** どのベッティングラウンドでも、1人を除いて全員フォールドした場合は即座にその1人が勝ち、SHOWDOWNをスキップ。
+
+**プレイヤー数による調整:**
+- 4人: SB, BB, UTG, BTN（BTNがディーラー）
+- 3人: SB, BB, BTN（BTNがディーラー兼UTG）
+- 2人 (Heads-up): BTN=SB（ディーラーがSBを投稿）, BB
+
+**ブラインド構成:**
+- 初期値はホストがゲーム開始前に設定（デフォルト: SB=5, BB=10）
+- Phase 1ではブラインドは固定（増加なし）
+- 将来的にブラインドレベル構造（時間経過で増加）を追加可能
+
+**アクションタイマー:**
+- 各プレイヤーのアクション制限時間: 30秒（設定可能）
+- タイムアウト時: チェック可能ならチェック、それ以外はフォールド
+- 残り時間はGameStateの`actionTimeout`フィールドでクライアントに通知
+- UIにカウントダウンタイマーを表示
 
 ### Betting Round Flow
 
@@ -213,7 +329,9 @@ Flush > Straight > Three of a Kind > Two Pair > One Pair > High Card
 
 ## 4. UI Design (GTO Wizard Style)
 
-### Screen Size Reference: 720 x 1560px
+### Screen Size Reference: 720 x 1560px (物理ピクセル)
+
+UIレイアウトは論理ピクセル (dp) で実装し、React Nativeの`Dimensions` APIとflexboxで画面サイズに適応させる。上記の座標値はデザインの基準値であり、実装時は比率ベースのレイアウト（flex, percentage）を使用する。
 
 ### Color Scheme
 
@@ -344,6 +462,39 @@ LobbyScreen → GameScreen → ResultOverlay (modal) → GameScreen (next round)
                                                   → LobbyScreen (game end)
 ```
 
+### ResultOverlay Layout
+
+ラウンド終了時にGameScreen上にモーダル表示:
+
+```
+┌───────────────────────────────┐
+│                               │
+│       🏆 Winner: Alice        │  白太字 20px
+│       Full House              │  グレー 14px (役名)
+│       Kings over Sevens       │  グレー 12px (役の詳細)
+│                               │
+│  ── 全プレイヤーの手札公開 ──  │
+│                               │
+│  P1: [A♥][K♠]  Full House    │  勝者はハイライト
+│  P2: [Q♦][J♦]  Two Pair     │
+│  P3: [8♠][7♣]  (folded)     │  フォールド済はグレー
+│  YOU: [K♠][J♦]  One Pair    │
+│                               │
+│  ── ポット分配 ──             │
+│  Main Pot: 400 → P1          │
+│  Side Pot: 200 → P2          │  サイドポットがある場合のみ
+│                               │
+│     [次のラウンドへ]           │  ボタン (#10B981 緑)
+│                               │
+└───────────────────────────────┘
+```
+
+- 背景: 半透明オーバーレイ (#000000, 70% opacity)
+- モーダル: #1A1A2E 背景、角丸16px
+- フォールド済プレイヤーは手札非公開、"(folded)" 表示
+- サイドポットが複数ある場合は各ポットの勝者を個別表示
+- GAME_OVER時は「次のラウンドへ」の代わりに「ロビーに戻る」ボタン
+
 ---
 
 ## 5. Error Handling & Connection Management
@@ -378,6 +529,30 @@ All PlayerActions validated on host side:
 | State consistency | Ignore actions from already-folded players |
 
 Invalid actions are discarded; host requests re-input from client.
+
+**PlayerAction認証:** ホストはBLE接続IDとseat IDのマッピングを保持。PlayerActionの送信元は接続IDで特定するため、クライアントが送信するseatフィールドは無視される。これにより他プレイヤーになりすますことを防止。
+
+### iOS BLE Peripheral Mode Constraints
+
+iOSでホスト端末がBLE Peripheralとして動作する際の制約:
+
+- **バックグラウンド制限:** iOSアプリがバックグラウンドに移行するとBLE advertisingが停止し、既存の接続が不安定になる可能性がある
+  - 対策: ホスト端末のUIに「アプリを前面に保ってください」という常時表示の警告
+  - `Info.plist`に`UIBackgroundModes: bluetooth-peripheral`を設定し、バックグラウンドでの接続維持を試みる
+- **同時接続数:** iOSは一般的に最大7-8のCentral接続をサポートするが、3接続は安全な範囲内
+- **必須Info.plistキー:**
+  - `NSBluetoothPeripheralUsageDescription` — Peripheral広告の許可
+  - `NSBluetoothAlwaysUsageDescription` — Bluetooth使用の許可
+
+### Android BLE Permissions (API 31+)
+
+Android 12以降で必要な権限:
+- `BLUETOOTH_SCAN` — デバイスのスキャン
+- `BLUETOOTH_ADVERTISE` — Peripheral広告（ホスト側）
+- `BLUETOOTH_CONNECT` — デバイスへの接続
+- `ACCESS_FINE_LOCATION` — BLEスキャンに必要（Android 11以下）
+
+アプリ初回起動時に権限リクエストダイアログを表示。
 
 ### Game State Consistency
 
