@@ -1,6 +1,6 @@
 # Jet Holdem - Game Engine Implementation Plan
 
-> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the complete Texas Hold'em game engine with full TDD coverage — deck, hand evaluation, betting rounds, pot management, and game loop — as a pure TypeScript library testable with Jest.
 
@@ -48,7 +48,7 @@ jet-holdem2/
 
 ### Task 1: Project Initialization
 
-- [ ] **Step 1: Initialize Expo TypeScript project**
+- [x] **Step 1: Initialize Expo TypeScript project**
 
 ```bash
 cd /home/ub180822/00_hobby/jet-holdem2
@@ -65,13 +65,13 @@ rm -rf /tmp/jet-holdem-init
 cd /home/ub180822/00_hobby/jet-holdem2
 ```
 
-- [ ] **Step 2: Install dev dependencies for testing**
+- [x] **Step 2: Install dev dependencies for testing**
 
 ```bash
 npm install --save-dev jest ts-jest @types/jest
 ```
 
-- [ ] **Step 3: Create jest.config.js**
+- [x] **Step 3: Create jest.config.js**
 
 Create `jest.config.js`:
 
@@ -87,7 +87,7 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 4: Verify tsconfig.json includes src and tests paths**
+- [x] **Step 4: Verify tsconfig.json includes src and tests paths**
 
 Expo's template generates a `tsconfig.json` with `"extends": "expo/tsconfig.base"`. Modify it to add `strict` mode and include test paths. The result should look like:
 
@@ -104,13 +104,13 @@ Expo's template generates a `tsconfig.json` with `"extends": "expo/tsconfig.base
 
 Do NOT remove the `extends` field — it provides Expo's module resolution, JSX settings, and other defaults.
 
-- [ ] **Step 5: Create source and test directories**
+- [x] **Step 5: Create source and test directories**
 
 ```bash
 mkdir -p src/gameEngine tests/gameEngine
 ```
 
-- [ ] **Step 6: Add test script to package.json**
+- [x] **Step 6: Add test script to package.json**
 
 Add to `"scripts"` in `package.json`:
 
@@ -119,7 +119,7 @@ Add to `"scripts"` in `package.json`:
 "test:watch": "jest --watch"
 ```
 
-- [ ] **Step 7: Create a smoke test and run it**
+- [x] **Step 7: Create a smoke test and run it**
 
 Create `tests/gameEngine/smoke.test.ts`:
 
@@ -134,7 +134,7 @@ describe('Jest setup', () => {
 Run: `npm test`
 Expected: 1 test passed.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
@@ -145,7 +145,7 @@ git commit -m "chore: initialize Expo TypeScript project with Jest"
 
 ### Task 2: Type Definitions
 
-- [ ] **Step 1: Create types.ts**
+- [x] **Step 1: Create types.ts**
 
 Create `src/gameEngine/types.ts`:
 
@@ -221,12 +221,12 @@ export interface GameState {
 }
 ```
 
-- [ ] **Step 2: Verify types compile**
+- [x] **Step 2: Verify types compile**
 
 Run: `npx tsc --noEmit src/gameEngine/types.ts`
 Expected: No errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/gameEngine/types.ts
@@ -237,7 +237,7 @@ git commit -m "feat: add game engine type definitions"
 
 ### Task 3: Card Utilities
 
-- [ ] **Step 1: Write failing tests for Card utilities**
+- [x] **Step 1: Write failing tests for Card utilities**
 
 Create `tests/gameEngine/Card.test.ts`:
 
@@ -298,12 +298,12 @@ describe('Card', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- tests/gameEngine/Card.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement Card.ts**
+- [x] **Step 3: Implement Card.ts**
 
 Create `src/gameEngine/Card.ts`:
 
@@ -347,12 +347,12 @@ export function compareValues(a: number[], b: number[]): number {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- tests/gameEngine/Card.test.ts`
 Expected: All tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/gameEngine/Card.ts tests/gameEngine/Card.test.ts
@@ -363,7 +363,7 @@ git commit -m "feat: add Card utilities with parsing and comparison"
 
 ### Task 4: Deck
 
-- [ ] **Step 1: Write failing tests for Deck**
+- [x] **Step 1: Write failing tests for Deck**
 
 Create `tests/gameEngine/Deck.test.ts`:
 
@@ -426,12 +426,12 @@ describe('Deck', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- tests/gameEngine/Deck.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement Deck.ts**
+- [x] **Step 3: Implement Deck.ts**
 
 Create `src/gameEngine/Deck.ts`:
 
@@ -480,19 +480,19 @@ export class Deck {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- tests/gameEngine/Deck.test.ts`
 Expected: All tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/gameEngine/Deck.ts tests/gameEngine/Deck.test.ts
 git commit -m "feat: add Deck with Fisher-Yates shuffle and deal"
 ```
 
-- [ ] **Step 6: Delete smoke test**
+- [x] **Step 6: Delete smoke test**
 
 Remove `tests/gameEngine/smoke.test.ts` — no longer needed.
 
@@ -508,7 +508,7 @@ git commit -m "chore: remove smoke test"
 
 ### Task 5: HandEvaluator — 5-Card Evaluation
 
-- [ ] **Step 1: Write failing tests for 5-card hand evaluation**
+- [x] **Step 1: Write failing tests for 5-card hand evaluation**
 
 Create `tests/gameEngine/HandEvaluator.test.ts`:
 
@@ -611,12 +611,12 @@ describe('HandEvaluator', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- tests/gameEngine/HandEvaluator.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement HandEvaluator.ts (5-card evaluation)**
+- [x] **Step 3: Implement HandEvaluator.ts (5-card evaluation)**
 
 Create `src/gameEngine/HandEvaluator.ts`:
 
@@ -763,12 +763,12 @@ export function compareHands(a: HandResult, b: HandResult): number {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- tests/gameEngine/HandEvaluator.test.ts`
 Expected: All tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/gameEngine/HandEvaluator.ts tests/gameEngine/HandEvaluator.test.ts
@@ -779,7 +779,7 @@ git commit -m "feat: add HandEvaluator with 5-card evaluation and all hand ranks
 
 ### Task 6: HandEvaluator — 7-Card Evaluation & Advanced Tests
 
-- [ ] **Step 1: Add 7-card evaluation and comparison tests**
+- [x] **Step 1: Add 7-card evaluation and comparison tests**
 
 Add the following `describe` blocks **inside** the existing `describe('HandEvaluator', ...)` block in `tests/gameEngine/HandEvaluator.test.ts`, before the closing `});`:
 
@@ -836,12 +836,12 @@ Add the following `describe` blocks **inside** the existing `describe('HandEvalu
   });
 ```
 
-- [ ] **Step 2: Run tests to verify they pass**
+- [x] **Step 2: Run tests to verify they pass**
 
 Run: `npm test -- tests/gameEngine/HandEvaluator.test.ts`
 Expected: All tests PASS (new tests use already-implemented code).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/gameEngine/HandEvaluator.test.ts
@@ -854,7 +854,7 @@ git commit -m "test: add 7-card evaluation and hand comparison tests"
 
 ### Task 7: PotManager
 
-- [ ] **Step 1: Write failing tests for PotManager**
+- [x] **Step 1: Write failing tests for PotManager**
 
 Create `tests/gameEngine/PotManager.test.ts`:
 
@@ -1000,12 +1000,12 @@ describe('PotManager', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- tests/gameEngine/PotManager.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement PotManager.ts**
+- [x] **Step 3: Implement PotManager.ts**
 
 Create `src/gameEngine/PotManager.ts`:
 
@@ -1103,12 +1103,12 @@ export class PotManager {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- tests/gameEngine/PotManager.test.ts`
 Expected: All tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/gameEngine/PotManager.ts tests/gameEngine/PotManager.test.ts
@@ -1119,7 +1119,7 @@ git commit -m "feat: add PotManager with side pot calculation"
 
 ### Task 8: BettingRound
 
-- [ ] **Step 1: Write failing tests for BettingRound**
+- [x] **Step 1: Write failing tests for BettingRound**
 
 Create `tests/gameEngine/BettingRound.test.ts`:
 
@@ -1325,12 +1325,12 @@ describe('BettingRound', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- tests/gameEngine/BettingRound.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement BettingRound.ts**
+- [x] **Step 3: Implement BettingRound.ts**
 
 Create `src/gameEngine/BettingRound.ts`:
 
@@ -1566,12 +1566,12 @@ export class BettingRound {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- tests/gameEngine/BettingRound.test.ts`
 Expected: All tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/gameEngine/BettingRound.ts tests/gameEngine/BettingRound.test.ts
@@ -1584,7 +1584,7 @@ git commit -m "feat: add BettingRound with action validation and turn management
 
 ### Task 9: GameLoop
 
-- [ ] **Step 1: Write failing tests for GameLoop**
+- [x] **Step 1: Write failing tests for GameLoop**
 
 Create `tests/gameEngine/GameLoop.test.ts`:
 
@@ -1804,12 +1804,12 @@ describe('GameLoop', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm test -- tests/gameEngine/GameLoop.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement GameLoop.ts**
+- [x] **Step 3: Implement GameLoop.ts**
 
 Create `src/gameEngine/GameLoop.ts`:
 
@@ -2082,12 +2082,12 @@ export class GameLoop {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test -- tests/gameEngine/GameLoop.test.ts`
 Expected: All tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/gameEngine/GameLoop.ts tests/gameEngine/GameLoop.test.ts
@@ -2098,7 +2098,7 @@ git commit -m "feat: add GameLoop with phase progression, blinds, and showdown"
 
 ### Task 10: Index Module and Final Verification
 
-- [ ] **Step 1: Create index.ts to re-export public API**
+- [x] **Step 1: Create index.ts to re-export public API**
 
 Create `src/gameEngine/index.ts`:
 
@@ -2113,24 +2113,24 @@ export { BettingRound, ActionResult } from './BettingRound';
 export { GameLoop, ShowdownResult } from './GameLoop';
 ```
 
-- [ ] **Step 2: Run full test suite**
+- [x] **Step 2: Run full test suite**
 
 Run: `npm test`
 Expected: All tests PASS across all test files.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/gameEngine/index.ts
 git commit -m "feat: add gameEngine public API index"
 ```
 
-- [ ] **Step 4: Run full test suite with coverage**
+- [x] **Step 4: Run full test suite with coverage**
 
 Run: `npm test -- --coverage`
 Expected: High coverage across all game engine modules. Review any uncovered branches.
 
-- [ ] **Step 5: Final commit with any coverage-driven fixes**
+- [x] **Step 5: Final commit with any coverage-driven fixes**
 
 If coverage reveals untested edge cases, add tests and commit:
 
