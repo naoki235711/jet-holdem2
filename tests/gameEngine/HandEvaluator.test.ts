@@ -93,4 +93,55 @@ describe('HandEvaluator', () => {
       expect(compareHands(hand1, hand2)).toBe(0);
     });
   });
+
+  describe('evaluate7Cards', () => {
+    it('finds best 5 from 7 cards', () => {
+      // 7 cards contain a flush in hearts
+      const cards: Card[] = ['Ah', 'Kh', '9h', '7h', '2h', 'Qs', '3d'];
+      const result = evaluate7Cards(cards);
+      expect(result.rank).toBe(HandRank.Flush);
+    });
+
+    it('finds hidden straight in 7 cards', () => {
+      const cards: Card[] = ['9h', '8d', '7s', '6c', '5h', 'Kd', '2s'];
+      const result = evaluate7Cards(cards);
+      expect(result.rank).toBe(HandRank.Straight);
+      expect(result.values[1]).toBe(9);
+    });
+
+    it('prefers full house over two pair in 7 cards', () => {
+      // KKK77 is in there plus extra cards
+      const cards: Card[] = ['Kh', 'Kd', 'Ks', '7c', '7h', '3d', '2s'];
+      const result = evaluate7Cards(cards);
+      expect(result.rank).toBe(HandRank.FullHouse);
+    });
+
+    it('finds best full house when two are possible', () => {
+      // Cards: KKK 77 33 — best is KKK over 77
+      const cards: Card[] = ['Kh', 'Kd', 'Ks', '7c', '7h', '3d', '3s'];
+      const result = evaluate7Cards(cards);
+      expect(result.rank).toBe(HandRank.FullHouse);
+      expect(result.description).toBe('Full House, Kings over Sevens');
+    });
+  });
+
+  describe('compareHands', () => {
+    it('flush beats straight', () => {
+      const flush = evaluateHand(['Ah', '9h', '7h', '4h', '2h'] as Card[]);
+      const straight = evaluateHand(['9h', '8d', '7s', '6c', '5h'] as Card[]);
+      expect(compareHands(flush, straight)).toBeGreaterThan(0);
+    });
+
+    it('higher pair beats lower pair', () => {
+      const aces = evaluateHand(['Ah', 'Ad', '9s', '7c', '3h'] as Card[]);
+      const kings = evaluateHand(['Kh', 'Kd', '9s', '7c', '3h'] as Card[]);
+      expect(compareHands(aces, kings)).toBeGreaterThan(0);
+    });
+
+    it('returns 0 for equivalent hands', () => {
+      const hand1 = evaluateHand(['Ah', 'Kd', '9s', '7c', '3h'] as Card[]);
+      const hand2 = evaluateHand(['As', 'Kc', '9d', '7h', '3d'] as Card[]);
+      expect(compareHands(hand1, hand2)).toBe(0);
+    });
+  });
 });
