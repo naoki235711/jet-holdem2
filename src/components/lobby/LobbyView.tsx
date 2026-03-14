@@ -4,12 +4,16 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/colors';
+import { LobbyModeSelector, LobbyMode } from './LobbyModeSelector';
+import { HostSetupForm } from './HostSetupForm';
+import { JoinSetupForm } from './JoinSetupForm';
 
 const PLAYER_COUNTS = [2, 3, 4];
 const DEFAULT_NAMES = ['Player 0', 'Player 1', 'Player 2', 'Player 3'];
 
 export function LobbyView() {
   const router = useRouter();
+  const [lobbyMode, setLobbyMode] = useState<LobbyMode>('local');
   const [playerCount, setPlayerCount] = useState(3);
   const [names, setNames] = useState(DEFAULT_NAMES);
   const [initialChips, setInitialChips] = useState('1000');
@@ -37,95 +41,123 @@ export function LobbyView() {
     });
   };
 
+  const handleHostSubmit = (settings: { hostName: string; sb: string; bb: string; initialChips: string }) => {
+    router.push({
+      pathname: '/ble-host',
+      params: settings,
+    });
+  };
+
+  const handleJoinSubmit = (playerName: string) => {
+    router.push({
+      pathname: '/ble-join',
+      params: { playerName },
+    });
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Jet Holdem</Text>
 
-      <Text style={styles.label}>プレイヤー数</Text>
-      <View style={styles.countRow}>
-        {PLAYER_COUNTS.map(n => (
-          <TouchableOpacity
-            key={n}
-            testID={`count-btn-${n}`}
-            style={[styles.countBtn, playerCount === n && styles.countBtnActive]}
-            onPress={() => setPlayerCount(n)}
-          >
-            <Text style={[styles.countText, playerCount === n && styles.countTextActive]}>
-              {n}
-            </Text>
+      <LobbyModeSelector selected={lobbyMode} onSelect={setLobbyMode} />
+
+      {lobbyMode === 'local' && (
+        <>
+          <Text style={styles.label}>プレイヤー数</Text>
+          <View style={styles.countRow}>
+            {PLAYER_COUNTS.map(n => (
+              <TouchableOpacity
+                key={n}
+                testID={`count-btn-${n}`}
+                style={[styles.countBtn, playerCount === n && styles.countBtnActive]}
+                onPress={() => setPlayerCount(n)}
+              >
+                <Text style={[styles.countText, playerCount === n && styles.countTextActive]}>
+                  {n}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.label}>プレイヤー名</Text>
+          {Array.from({ length: playerCount }, (_, i) => (
+            <TextInput
+              key={i}
+              style={styles.input}
+              placeholder={`Player ${i}`}
+              placeholderTextColor={Colors.subText}
+              value={names[i]}
+              onChangeText={(text) => updateName(i, text)}
+            />
+          ))}
+
+          <Text style={styles.label}>初期チップ</Text>
+          <TextInput
+            style={styles.input}
+            value={initialChips}
+            onChangeText={setInitialChips}
+            keyboardType="numeric"
+            placeholderTextColor={Colors.subText}
+          />
+
+          <View style={styles.blindsRow}>
+            <View style={styles.blindInput}>
+              <Text style={styles.label}>SB</Text>
+              <TextInput
+                style={styles.input}
+                value={sb}
+                onChangeText={setSb}
+                keyboardType="numeric"
+                placeholderTextColor={Colors.subText}
+              />
+            </View>
+            <View style={styles.blindInput}>
+              <Text style={styles.label}>BB</Text>
+              <TextInput
+                style={styles.input}
+                value={bb}
+                onChangeText={setBb}
+                keyboardType="numeric"
+                placeholderTextColor={Colors.subText}
+              />
+            </View>
+          </View>
+
+          <Text style={styles.label}>モード</Text>
+          <View style={styles.modeRow}>
+            <TouchableOpacity
+              testID="mode-btn-hotseat"
+              style={[styles.modeBtn, mode === 'hotseat' && styles.modeBtnActive]}
+              onPress={() => setMode('hotseat')}
+            >
+              <Text style={[styles.modeText, mode === 'hotseat' && styles.modeTextActive]}>
+                ホットシート
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="mode-btn-debug"
+              style={[styles.modeBtn, mode === 'debug' && styles.modeBtnActive]}
+              onPress={() => setMode('debug')}
+            >
+              <Text style={[styles.modeText, mode === 'debug' && styles.modeTextActive]}>
+                デバッグ
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity testID="start-btn" style={styles.startBtn} onPress={handleStart}>
+            <Text style={styles.startBtnText}>ゲーム開始</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+        </>
+      )}
 
-      <Text style={styles.label}>プレイヤー名</Text>
-      {Array.from({ length: playerCount }, (_, i) => (
-        <TextInput
-          key={i}
-          style={styles.input}
-          placeholder={`Player ${i}`}
-          placeholderTextColor={Colors.subText}
-          value={names[i]}
-          onChangeText={(text) => updateName(i, text)}
-        />
-      ))}
+      {lobbyMode === 'host' && (
+        <HostSetupForm onSubmit={handleHostSubmit} />
+      )}
 
-      <Text style={styles.label}>初期チップ</Text>
-      <TextInput
-        style={styles.input}
-        value={initialChips}
-        onChangeText={setInitialChips}
-        keyboardType="numeric"
-        placeholderTextColor={Colors.subText}
-      />
-
-      <View style={styles.blindsRow}>
-        <View style={styles.blindInput}>
-          <Text style={styles.label}>SB</Text>
-          <TextInput
-            style={styles.input}
-            value={sb}
-            onChangeText={setSb}
-            keyboardType="numeric"
-            placeholderTextColor={Colors.subText}
-          />
-        </View>
-        <View style={styles.blindInput}>
-          <Text style={styles.label}>BB</Text>
-          <TextInput
-            style={styles.input}
-            value={bb}
-            onChangeText={setBb}
-            keyboardType="numeric"
-            placeholderTextColor={Colors.subText}
-          />
-        </View>
-      </View>
-
-      <Text style={styles.label}>モード</Text>
-      <View style={styles.modeRow}>
-        <TouchableOpacity
-          testID="mode-btn-hotseat"
-          style={[styles.modeBtn, mode === 'hotseat' && styles.modeBtnActive]}
-          onPress={() => setMode('hotseat')}
-        >
-          <Text style={[styles.modeText, mode === 'hotseat' && styles.modeTextActive]}>
-            ホットシート
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID="mode-btn-debug"
-          style={[styles.modeBtn, mode === 'debug' && styles.modeBtnActive]}
-          onPress={() => setMode('debug')}
-        >
-          <Text style={[styles.modeText, mode === 'debug' && styles.modeTextActive]}>
-            デバッグ
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity testID="start-btn" style={styles.startBtn} onPress={handleStart}>
-        <Text style={styles.startBtnText}>ゲーム開始</Text>
-      </TouchableOpacity>
+      {lobbyMode === 'join' && (
+        <JoinSetupForm onSubmit={handleJoinSubmit} />
+      )}
     </ScrollView>
   );
 }
