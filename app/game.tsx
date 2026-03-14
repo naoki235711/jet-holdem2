@@ -1,6 +1,6 @@
 // app/game.tsx
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { GameProvider } from '../src/contexts/GameContext';
@@ -11,6 +11,7 @@ import { CommunityCards } from '../src/components/table/CommunityCards';
 import { PotDisplay } from '../src/components/table/PotDisplay';
 import { ActionButtons } from '../src/components/actions/ActionButtons';
 import { ResultOverlay } from '../src/components/result/ResultOverlay';
+import { PassDeviceScreen } from '../src/components/common/PassDeviceScreen';
 import { Colors } from '../src/theme/colors';
 
 function TableLayout() {
@@ -57,6 +58,52 @@ function TableLayout() {
   );
 }
 
+function GameView() {
+  const { state, mode, viewingSeat } = useGame();
+  const [showPassScreen, setShowPassScreen] = useState(false);
+  const [nextPlayerName, setNextPlayerName] = useState('');
+  const prevActiveRef = React.useRef<number>(-1);
+
+  useEffect(() => {
+    if (!state || mode !== 'hotseat') return;
+
+    const currentActive = state.activePlayer;
+    const prevActive = prevActiveRef.current;
+
+    if (
+      prevActive >= 0 &&
+      currentActive >= 0 &&
+      currentActive !== prevActive &&
+      state.phase !== 'roundEnd' &&
+      state.phase !== 'showdown'
+    ) {
+      const player = state.players.find(p => p.seat === currentActive);
+      if (player) {
+        setNextPlayerName(player.name);
+        setShowPassScreen(true);
+      }
+    }
+    prevActiveRef.current = currentActive;
+  }, [state?.activePlayer, state?.phase, mode]);
+
+  if (showPassScreen) {
+    return (
+      <PassDeviceScreen
+        playerName={nextPlayerName}
+        onDismiss={() => setShowPassScreen(false)}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      <TableLayout />
+      <ActionButtons />
+      <ResultOverlay />
+    </View>
+  );
+}
+
 export default function GameScreen() {
   const params = useLocalSearchParams<{
     playerNames: string;
@@ -80,11 +127,7 @@ export default function GameScreen() {
 
   return (
     <GameProvider service={service} mode={mode}>
-      <View style={styles.screen}>
-        <TableLayout />
-        <ActionButtons />
-        <ResultOverlay />
-      </View>
+      <GameView />
     </GameProvider>
   );
 }
