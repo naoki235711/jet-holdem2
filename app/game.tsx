@@ -17,6 +17,7 @@ import { ActionButtons } from '../src/components/actions/ActionButtons';
 import { ResultOverlay } from '../src/components/result/ResultOverlay';
 import { PassDeviceScreen } from '../src/components/common/PassDeviceScreen';
 import { Colors } from '../src/theme/colors';
+import { repository } from '../src/services/persistence';
 
 function TableLayout() {
   const { state, viewingSeat } = useGame();
@@ -151,6 +152,7 @@ export default function GameScreen() {
     mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
     seat?: string;
     clientSeatMap?: string;
+    playerChips?: string;  // JSON Record<string, number>
   }>();
 
   const mode = params.mode ?? 'debug';
@@ -178,8 +180,11 @@ export default function GameScreen() {
 
     // Local modes (hotseat / debug)
     const playerNames: string[] = JSON.parse(params.playerNames ?? '["P0","P1","P2"]');
+    const playerChipsMap: Record<string, number> | undefined = params.playerChips
+      ? JSON.parse(params.playerChips)
+      : undefined;
     const svc = new LocalGameService();
-    svc.startGame(playerNames, blinds, initialChips);
+    svc.startGame(playerNames, blinds, initialChips, playerChipsMap);
     svc.startRound();
     return svc;
   });
@@ -194,8 +199,16 @@ export default function GameScreen() {
     };
   }, []);
 
+  const repo = mode === 'debug' ? undefined : repository;
+
   return (
-    <GameProvider service={service} mode={mode}>
+    <GameProvider
+      service={service}
+      mode={mode}
+      repository={repo}
+      initialChips={initialChips}
+      blinds={blinds}
+    >
       <GameView />
     </GameProvider>
   );

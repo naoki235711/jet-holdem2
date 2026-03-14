@@ -3,6 +3,8 @@ import { GameState, PlayerAction } from '../gameEngine';
 import { ShowdownResult } from '../gameEngine';
 import { GameService, ActionInfo } from '../services/GameService';
 import { ActionResult } from '../gameEngine';
+import { GameRepository } from '../services/persistence/GameRepository';
+import { usePersistence, PersistenceConfig } from '../hooks/usePersistence';
 
 export interface GameContextValue {
   state: GameState | null;
@@ -22,14 +24,29 @@ interface GameProviderProps {
   children: React.ReactNode;
   service: GameService;
   mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
+  repository?: GameRepository;
+  initialChips?: number;
+  blinds?: { sb: number; bb: number };
 }
 
-export function GameProvider({ children, service, mode }: GameProviderProps) {
+export function GameProvider({ children, service, mode, repository, initialChips, blinds }: GameProviderProps) {
   const [state, setState] = useState<GameState | null>(null);
   const [viewingSeat, setViewingSeat] = useState(0);
   const [showdownResult, setShowdownResult] = useState<ShowdownResult | null>(null);
   const serviceRef = useRef(service);
   serviceRef.current = service;
+
+  // Persistence hook (always called unconditionally; repository=null disables)
+  const persistMode = mode === 'debug' ? 'hotseat' : mode;
+  usePersistence(
+    service,
+    repository ?? null,
+    {
+      mode: persistMode as PersistenceConfig['mode'],
+      initialChips: initialChips ?? 0,
+      blinds: blinds ?? { sb: 0, bb: 0 },
+    },
+  );
 
   const prevPhaseRef = useRef<string | null>(null);
 

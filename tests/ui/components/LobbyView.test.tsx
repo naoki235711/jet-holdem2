@@ -1,7 +1,7 @@
 // tests/ui/components/LobbyView.test.tsx
 
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { LobbyView } from '../../../src/components/lobby/LobbyView';
 
 const mockPush = jest.fn();
@@ -52,10 +52,12 @@ describe('LobbyView', () => {
     expect(screen.getByText('ゲーム開始')).toBeTruthy();
   });
 
-  it('navigates to game screen on start', () => {
+  it('navigates to game screen on start', async () => {
     render(<LobbyView />);
     fireEvent.press(screen.getByText('ゲーム開始'));
-    expect(mockPush).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalled();
+    });
   });
 
   it('renders lobby mode tabs (ローカル, ホスト作成, ゲーム参加)', () => {
