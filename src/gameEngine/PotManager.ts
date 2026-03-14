@@ -40,9 +40,10 @@ export class PotManager {
         .filter(b => b.amount >= boundary)
         .map(b => b.seat)
         .sort((a, b) => a - b);
-      // Players who contributed to this layer (amount > previousBoundary)
-      const contributors = bets.filter(b => b.amount > previousBoundary);
-      const potAmount = layerAmount * contributors.length;
+      // Sum each contributor's actual contribution to this layer
+      const potAmount = bets
+        .filter(b => b.amount > previousBoundary)
+        .reduce((sum, b) => sum + Math.min(b.amount, boundary) - previousBoundary, 0);
 
       this.addToPot(potAmount, eligible);
       previousBoundary = boundary;

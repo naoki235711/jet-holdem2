@@ -126,6 +126,48 @@ describe('PotManager', () => {
     });
   });
 
+  describe('side pots with partial bets (folded player bet < all-in boundary)', () => {
+    it('correctly counts chips when folded player bet less than all-in amount', () => {
+      // Scenario: SB posts 5, Player 1 all-in for 50, Player 2 calls 50, SB folds
+      // SB's bet of 5 is still in getBets() because bet > 0
+      pm.collectBets([
+        { seat: 0, amount: 5, isAllIn: false },   // SB folded after posting
+        { seat: 1, amount: 50, isAllIn: true },    // all-in
+        { seat: 2, amount: 50, isAllIn: false },   // called
+      ]);
+
+      // Total chips actually bet: 5 + 50 + 50 = 105
+      expect(pm.getTotal()).toBe(105);
+    });
+
+    it('correctly counts chips when bet is between two all-in boundaries', () => {
+      // Player 0: all-in 100, Player 1: all-in 300, Player 2: bet 200 (folded), Player 3: calls 300
+      pm.collectBets([
+        { seat: 0, amount: 100, isAllIn: true },
+        { seat: 1, amount: 300, isAllIn: true },
+        { seat: 2, amount: 200, isAllIn: false },  // folded after betting 200
+        { seat: 3, amount: 300, isAllIn: false },
+      ]);
+
+      // Total chips actually bet: 100 + 300 + 200 + 300 = 900
+      expect(pm.getTotal()).toBe(900);
+    });
+
+    it('creates correct pot structure with partial bet below all-in', () => {
+      // Player 0: all-in 50, Player 1: bet 10 (folded), Player 2: calls 50
+      pm.collectBets([
+        { seat: 0, amount: 50, isAllIn: true },
+        { seat: 1, amount: 10, isAllIn: false },
+        { seat: 2, amount: 50, isAllIn: false },
+      ]);
+
+      // Correct calculation:
+      // Layer [0-10]: all 3 contribute 10 each → 30, eligible: all who bet >= 10 (but really
+      //   the important thing is the TOTAL must equal 50 + 10 + 50 = 110)
+      expect(pm.getTotal()).toBe(110);
+    });
+  });
+
   describe('edge cases', () => {
     it('collectBets with empty array does nothing', () => {
       pm.collectBets([]);
