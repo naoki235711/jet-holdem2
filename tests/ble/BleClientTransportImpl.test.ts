@@ -134,4 +134,95 @@ describe('BleClientTransportImpl', () => {
       expect(mockStopDeviceScan).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('connectToHost', () => {
+    let monitorCallback: ((error: any, char: any) => void) | null;
+    const mockMonitorCharacteristic = jest.fn((_sid, _cid, cb) => {
+      monitorCallback = cb;
+      return { remove: jest.fn() };
+    });
+    const mockDiscoverAll = jest.fn().mockResolvedValue({
+      monitorCharacteristicForService: mockMonitorCharacteristic,
+      onDisconnected: jest.fn(),
+      cancelConnection: mockCancelConnection,
+    });
+
+    beforeEach(() => {
+      monitorCallback = null;
+      mockConnectToDevice.mockResolvedValue({
+        id: 'host-1',
+        discoverAllServicesAndCharacteristics: mockDiscoverAll,
+        monitorCharacteristicForService: mockMonitorCharacteristic,
+        onDisconnected: jest.fn(),
+        cancelConnection: mockCancelConnection,
+      });
+    });
+
+    it('connects and discovers services', async () => {
+      await transport.connectToHost('host-1');
+      expect(mockConnectToDevice).toHaveBeenCalledWith('host-1');
+      expect(mockDiscoverAll).toHaveBeenCalled();
+    });
+
+    it('subscribes to notifications on each characteristic in the map', async () => {
+      await transport.connectToHost('host-1');
+      expect(mockMonitorCharacteristic).toHaveBeenCalledWith(
+        BLE_SERVICE_UUID,
+        LOBBY_CHARACTERISTIC_UUID,
+        expect.any(Function),
+      );
+    });
+
+    it('routes incoming notifications to onMessageReceived with logical name', async () => {
+      const msgCb = jest.fn();
+      transport.onMessageReceived(msgCb);
+      await transport.connectToHost('host-1');
+
+      // Simulate incoming BLE notification (base64 encoded)
+      const testData = new Uint8Array([1, 2, 3]);
+      const base64 = Buffer.from(testData).toString('base64');
+      monitorCallback!(null, {
+        uuid: LOBBY_CHARACTERISTIC_UUID,
+        value: base64,
+      });
+
+      expect(msgCb).toHaveBeenCalledWith('lobby', expect.any(Uint8Array));
+      const receivedData = msgCb.mock.calls[0][1];
+      expect(Array.from(receivedData)).toEqual([1, 2, 3]);
+    });
+
+    it('ignores notification errors without crashing', async () => {
+      const msgCb = jest.fn();
+      transport.onMessageReceived(msgCb);
+      await transport.connectToHost('host-1');
+
+      monitorCallback!(new Error('notification error'), null);
+
+      expect(msgCb).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('disconnect detection', () => {
+    let mockOnDisconnected: jest.Mock;
+    const mockMonitorChar = jest.fn((_sid, _cid, _cb) => ({
+      remove: jest.fn(),
+    }));
+
+    beforeEach(() => {
+      mockOnDisconnected = jest.fn();
+      mockConnectToDevice.mockResolvedValue({
+        id: 'host-1',
+        discoverAllServicesAndCharacteristics: jest.fn().mockResolvedValue({
+          monitorCharacteristicForService: mockMonitorChar,
+          cancelConnection: mockCancelConnection,
+          onDisconnected: mockOnDisconnected,
+        }),
+      });
+    });
+
+    it('calls onDisconnected listener after connecting', async () => {
+      await transport.connectToHost('host-1');
+      expect(mockOnDisconnected).toHaveBeenCalledWith(expect.any(Function));
+    });
+  });
 });

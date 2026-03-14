@@ -1,6 +1,7 @@
 // src/services/ble/BleClientTransportImpl.ts
 import { BleManager, Device, Subscription } from '@sfourdrinier/react-native-ble-plx';
 import { BleClientTransport } from './BleTransport';
+import { BLE_SERVICE_UUID } from './bleConstants';
 
 export class BleClientTransportImpl implements BleClientTransport {
   private manager: BleManager;
@@ -51,8 +52,31 @@ export class BleClientTransportImpl implements BleClientTransport {
     this._onHostDiscovered = callback;
   }
 
-  async connectToHost(_hostId: string): Promise<void> {
-    throw new Error('Not implemented yet');
+  async connectToHost(hostId: string): Promise<void> {
+    const device = await this.manager.connectToDevice(hostId);
+    this.connectedDevice = await device.discoverAllServicesAndCharacteristics();
+
+    // Listen for unexpected disconnection
+    this.connectedDevice.onDisconnected(() => {
+      this.connectedDevice = null;
+      this.subscriptions = [];
+    });
+
+    // Subscribe to notifications for each characteristic
+    for (const [_logicalName, uuid] of this.charMap) {
+      const sub = this.connectedDevice.monitorCharacteristicForService(
+        BLE_SERVICE_UUID,
+        uuid,
+        (error, characteristic) => {
+          if (error || !characteristic?.value) return;
+          const logicalName = this.reverseCharMap.get(characteristic.uuid);
+          if (!logicalName) return;
+          const bytes = base64ToUint8Array(characteristic.value);
+          this._onMessageReceived?.(logicalName, bytes);
+        },
+      );
+      this.subscriptions.push(sub);
+    }
   }
 
   async disconnect(): Promise<void> {
@@ -66,4 +90,13 @@ export class BleClientTransportImpl implements BleClientTransport {
   async sendToHost(_characteristicId: string, _data: Uint8Array): Promise<void> {
     throw new Error('Not implemented yet');
   }
+}
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const buf = Buffer.from(base64, 'base64');
+  return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+}
+
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString('base64');
 }
