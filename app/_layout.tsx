@@ -17,6 +17,8 @@ export default function RootLayout() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="game" />
+        <Stack.Screen name="ble-host" />
+        <Stack.Screen name="ble-join" />
       </Stack>
     </SafeAreaProvider>
   );
