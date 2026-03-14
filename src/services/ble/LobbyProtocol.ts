@@ -6,15 +6,21 @@ export type LobbyPlayer = {
   ready: boolean;
 };
 
+export type GameSettings = {
+  sb: number;
+  bb: number;
+  initialChips: number;
+};
+
 export type LobbyClientMessage =
   | { type: 'join'; protocolVersion: number; playerName: string }
   | { type: 'ready' };
 
 export type LobbyHostMessage =
-  | { type: 'joinResponse'; accepted: true; seat: number; players: LobbyPlayer[] }
+  | { type: 'joinResponse'; accepted: true; seat: number; players: LobbyPlayer[]; gameSettings: GameSettings }
   | { type: 'joinResponse'; accepted: false; reason: string }
   | { type: 'playerUpdate'; players: LobbyPlayer[] }
-  | { type: 'gameStart'; blinds: { sb: number; bb: number } }
+  | { type: 'gameStart'; blinds: { sb: number; bb: number }; initialChips: number }
   | { type: 'lobbyClosed'; reason: string };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -51,6 +57,15 @@ function isValidBlinds(value: unknown): value is { sb: number; bb: number } {
   return isObject(value) && typeof value.sb === 'number' && typeof value.bb === 'number';
 }
 
+function isValidGameSettings(value: unknown): value is GameSettings {
+  return (
+    isObject(value) &&
+    typeof value.sb === 'number' &&
+    typeof value.bb === 'number' &&
+    typeof value.initialChips === 'number'
+  );
+}
+
 export function validateHostMessage(data: unknown): LobbyHostMessage | null {
   if (!isObject(data)) return null;
 
@@ -59,11 +74,13 @@ export function validateHostMessage(data: unknown): LobbyHostMessage | null {
       if (data.accepted === true) {
         if (typeof data.seat !== 'number') return null;
         if (!isLobbyPlayerArray(data.players)) return null;
+        if (!isValidGameSettings(data.gameSettings)) return null;
         return {
           type: 'joinResponse',
           accepted: true,
           seat: data.seat,
           players: data.players,
+          gameSettings: data.gameSettings,
         };
       }
       if (data.accepted === false) {
@@ -76,7 +93,12 @@ export function validateHostMessage(data: unknown): LobbyHostMessage | null {
       return { type: 'playerUpdate', players: data.players };
     case 'gameStart':
       if (!isValidBlinds(data.blinds)) return null;
-      return { type: 'gameStart', blinds: data.blinds as { sb: number; bb: number } };
+      if (typeof data.initialChips !== 'number') return null;
+      return {
+        type: 'gameStart',
+        blinds: data.blinds as { sb: number; bb: number },
+        initialChips: data.initialChips as number,
+      };
     case 'lobbyClosed':
       if (typeof data.reason !== 'string') return null;
       return { type: 'lobbyClosed', reason: data.reason };

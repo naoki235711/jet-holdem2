@@ -56,8 +56,15 @@ describe('LobbyProtocol', () => {
     ];
 
     it('accepts a valid joinResponse (accepted)', () => {
-      const msg = { type: 'joinResponse', accepted: true, seat: 1, players };
-      expect(validateHostMessage(msg)).toEqual(msg);
+      const msg = {
+        type: 'joinResponse',
+        accepted: true,
+        seat: 1,
+        players,
+        gameSettings: { sb: 5, bb: 10, initialChips: 1000 },
+      };
+      expect(validateHostMessage(msg)).not.toBeNull();
+      expect(validateHostMessage(msg)!.type).toBe('joinResponse');
     });
 
     it('accepts a valid joinResponse (rejected)', () => {
@@ -71,7 +78,7 @@ describe('LobbyProtocol', () => {
     });
 
     it('accepts a valid gameStart', () => {
-      const msg = { type: 'gameStart', blinds: { sb: 5, bb: 10 } };
+      const msg = { type: 'gameStart', blinds: { sb: 5, bb: 10 }, initialChips: 1000 };
       expect(validateHostMessage(msg)).toEqual(msg);
     });
 
@@ -117,6 +124,65 @@ describe('LobbyProtocol', () => {
 
     it('rejects lobbyClosed without reason', () => {
       expect(validateHostMessage({ type: 'lobbyClosed' })).toBeNull();
+    });
+
+    it('validates joinResponse with gameSettings', () => {
+      const msg = validateHostMessage({
+        type: 'joinResponse',
+        accepted: true,
+        seat: 1,
+        players: [{ seat: 0, name: 'Host', ready: true }],
+        gameSettings: { sb: 5, bb: 10, initialChips: 1000 },
+      });
+      expect(msg).toEqual({
+        type: 'joinResponse',
+        accepted: true,
+        seat: 1,
+        players: [{ seat: 0, name: 'Host', ready: true }],
+        gameSettings: { sb: 5, bb: 10, initialChips: 1000 },
+      });
+    });
+
+    it('rejects joinResponse (accepted) without gameSettings', () => {
+      const msg = validateHostMessage({
+        type: 'joinResponse',
+        accepted: true,
+        seat: 1,
+        players: [{ seat: 0, name: 'Host', ready: true }],
+      });
+      expect(msg).toBeNull();
+    });
+
+    it('rejects joinResponse with invalid gameSettings', () => {
+      const msg = validateHostMessage({
+        type: 'joinResponse',
+        accepted: true,
+        seat: 1,
+        players: [{ seat: 0, name: 'Host', ready: true }],
+        gameSettings: { sb: 5, bb: 10 }, // missing initialChips
+      });
+      expect(msg).toBeNull();
+    });
+
+    it('validates gameStart with initialChips', () => {
+      const msg = validateHostMessage({
+        type: 'gameStart',
+        blinds: { sb: 5, bb: 10 },
+        initialChips: 1000,
+      });
+      expect(msg).toEqual({
+        type: 'gameStart',
+        blinds: { sb: 5, bb: 10 },
+        initialChips: 1000,
+      });
+    });
+
+    it('rejects gameStart without initialChips', () => {
+      const msg = validateHostMessage({
+        type: 'gameStart',
+        blinds: { sb: 5, bb: 10 },
+      });
+      expect(msg).toBeNull();
     });
   });
 });
