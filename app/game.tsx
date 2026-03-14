@@ -140,24 +140,38 @@ function GameView() {
 
 export default function GameScreen() {
   const params = useLocalSearchParams<{
-    playerNames: string;
+    playerNames?: string;
     initialChips: string;
     sb: string;
     bb: string;
-    mode: 'hotseat' | 'debug';
+    mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
+    seat?: string;
   }>();
 
-  const playerNames = JSON.parse(params.playerNames ?? '["P0","P1","P2"]');
-  const initialChips = Number(params.initialChips ?? '1000');
-  const blinds = { sb: Number(params.sb ?? '5'), bb: Number(params.bb ?? '10') };
   const mode = params.mode ?? 'debug';
 
+  const playerNames: string[] = (mode === 'ble-host' || mode === 'ble-client')
+    ? []
+    : JSON.parse(params.playerNames ?? '["P0","P1","P2"]');
+  const initialChips = Number(params.initialChips ?? '1000');
+  const blinds = { sb: Number(params.sb ?? '5'), bb: Number(params.bb ?? '10') };
+
   const [service] = React.useState(() => {
+    if (mode === 'ble-host' || mode === 'ble-client') return null as unknown as LocalGameService;
     const svc = new LocalGameService();
     svc.startGame(playerNames, blinds, initialChips);
     svc.startRound();
     return svc;
   });
+
+  // BLE game modes — placeholder until Doc 3 (BleGameService)
+  if (mode === 'ble-host' || mode === 'ble-client') {
+    return (
+      <View style={styles.screen}>
+        <Text style={styles.blePlaceholder}>BLEゲームモード（準備中）</Text>
+      </View>
+    );
+  }
 
   return (
     <GameProvider service={service} mode={mode}>
@@ -201,4 +215,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 8,
   },
+  blePlaceholder: { color: Colors.text, textAlign: 'center', marginTop: 100, fontSize: 18 },
 });

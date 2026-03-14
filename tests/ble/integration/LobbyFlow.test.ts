@@ -47,13 +47,19 @@ describe('LobbyFlow integration', () => {
     hostTransport.simulateClientConnected('client-1');
     await client1.connectToHost('host-1');
 
-    expect(client1JoinCb).toHaveBeenCalledWith(true, undefined);
+    expect(client1JoinCb).toHaveBeenCalledWith({
+      accepted: true,
+      gameSettings: { sb: 5, bb: 10, initialChips: 1000 },
+    });
 
     // Client 2 joins
     hostTransport.simulateClientConnected('client-2');
     await client2.connectToHost('host-1');
 
-    expect(client2JoinCb).toHaveBeenCalledWith(true, undefined);
+    expect(client2JoinCb).toHaveBeenCalledWith({
+      accepted: true,
+      gameSettings: { sb: 5, bb: 10, initialChips: 1000 },
+    });
 
     // Both clients are listed on host
     const lastHostPlayers = hostPlayersCb.mock.calls[hostPlayersCb.mock.calls.length - 1][0];
@@ -64,11 +70,11 @@ describe('LobbyFlow integration', () => {
     client2.setReady();
 
     // Host starts game
-    host.startGame({ sb: 5, bb: 10 });
+    host.startGame();
 
     expect(hostGameStartCb).toHaveBeenCalledWith({ sb: 5, bb: 10 });
-    expect(client1GameStartCb).toHaveBeenCalledWith({ sb: 5, bb: 10 });
-    expect(client2GameStartCb).toHaveBeenCalledWith({ sb: 5, bb: 10 });
+    expect(client1GameStartCb).toHaveBeenCalledWith({ blinds: { sb: 5, bb: 10 }, initialChips: 1000 });
+    expect(client2GameStartCb).toHaveBeenCalledWith({ blinds: { sb: 5, bb: 10 }, initialChips: 1000 });
   });
 
   it('client disconnect mid-lobby: player removed, seat freed', async () => {

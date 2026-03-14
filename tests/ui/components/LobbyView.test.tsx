@@ -57,4 +57,50 @@ describe('LobbyView', () => {
     fireEvent.press(screen.getByText('ゲーム開始'));
     expect(mockPush).toHaveBeenCalled();
   });
+
+  it('renders lobby mode tabs (ローカル, ホスト作成, ゲーム参加)', () => {
+    render(<LobbyView />);
+    expect(screen.getByText('ローカル')).toBeTruthy();
+    expect(screen.getByText('ホスト作成')).toBeTruthy();
+    expect(screen.getByText('ゲーム参加')).toBeTruthy();
+  });
+
+  it('shows host setup form when ホスト作成 tab is selected', () => {
+    render(<LobbyView />);
+    fireEvent.press(screen.getByText('ホスト作成'));
+    expect(screen.getByPlaceholderText('ホスト名')).toBeTruthy();
+  });
+
+  it('shows join setup form when ゲーム参加 tab is selected', () => {
+    render(<LobbyView />);
+    fireEvent.press(screen.getByText('ゲーム参加'));
+    expect(screen.getByPlaceholderText('プレイヤー名')).toBeTruthy();
+  });
+
+  it('shows local mode content by default', () => {
+    render(<LobbyView />);
+    expect(screen.getByText('ゲーム開始')).toBeTruthy();
+  });
+
+  it('navigates to ble-host when host form is submitted', () => {
+    render(<LobbyView />);
+    fireEvent.press(screen.getByText('ホスト作成'));
+    fireEvent.changeText(screen.getByPlaceholderText('ホスト名'), 'MyRoom');
+    fireEvent.press(screen.getByTestId('host-create-btn'));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/ble-host',
+      params: { hostName: 'MyRoom', sb: '5', bb: '10', initialChips: '1000' },
+    });
+  });
+
+  it('navigates to ble-join when join form is submitted', () => {
+    render(<LobbyView />);
+    fireEvent.press(screen.getByText('ゲーム参加'));
+    fireEvent.changeText(screen.getByPlaceholderText('プレイヤー名'), 'Alice');
+    fireEvent.press(screen.getByTestId('join-scan-btn'));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/ble-join',
+      params: { playerName: 'Alice' },
+    });
+  });
 });

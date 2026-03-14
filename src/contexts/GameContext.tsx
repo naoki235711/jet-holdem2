@@ -6,7 +6,7 @@ import { ActionResult } from '../gameEngine';
 
 export interface GameContextValue {
   state: GameState | null;
-  mode: 'hotseat' | 'debug';
+  mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
   viewingSeat: number;
   service: GameService;
   showdownResult: ShowdownResult | null;
@@ -21,7 +21,7 @@ export const GameContext = createContext<GameContextValue | null>(null);
 interface GameProviderProps {
   children: React.ReactNode;
   service: GameService;
-  mode: 'hotseat' | 'debug';
+  mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
 }
 
 export function GameProvider({ children, service, mode }: GameProviderProps) {
