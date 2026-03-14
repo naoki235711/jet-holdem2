@@ -4,7 +4,7 @@ module.exports = {
       displayName: 'engine',
       preset: 'ts-jest',
       testEnvironment: 'node',
-      roots: ['<rootDir>/tests/gameEngine', '<rootDir>/tests/services', '<rootDir>/tests/ble'],
+      roots: ['<rootDir>/tests/gameEngine', '<rootDir>/tests/services', '<rootDir>/tests/ble', '<rootDir>/tests/persistence'],
       moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
       transform: {
         '^.+\\.tsx?$': 'ts-jest',
