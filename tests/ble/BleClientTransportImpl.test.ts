@@ -42,6 +42,10 @@ describe('BleClientTransportImpl', () => {
     transport = new BleClientTransportImpl(charMap);
   });
 
+  afterEach(async () => {
+    await transport.stopScanning();
+  });
+
   describe('startScanning', () => {
     it('calls BleManager.startDeviceScan with the service UUID', async () => {
       await transport.startScanning(BLE_SERVICE_UUID);
