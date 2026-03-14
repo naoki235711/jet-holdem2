@@ -4,7 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { GameProvider } from '../src/contexts/GameContext';
+import { GameService } from '../src/services/GameService';
 import { LocalGameService } from '../src/services/LocalGameService';
+import { BleHostGameService } from '../src/services/ble/BleHostGameService';
+import { BleClientGameService } from '../src/services/ble/BleClientGameService';
+import { getHostTransport, getClientTransport, clearHostTransport, clearClientTransport } from '../src/services/ble/transportRegistry';
 import { useGame } from '../src/hooks/useGame';
 import { PlayerSeat } from '../src/components/table/PlayerSeat';
 import { CommunityCards } from '../src/components/table/CommunityCards';
@@ -146,32 +150,49 @@ export default function GameScreen() {
     bb: string;
     mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
     seat?: string;
+    clientSeatMap?: string;
   }>();
 
   const mode = params.mode ?? 'debug';
-
-  const playerNames: string[] = (mode === 'ble-host' || mode === 'ble-client')
-    ? []
-    : JSON.parse(params.playerNames ?? '["P0","P1","P2"]');
   const initialChips = Number(params.initialChips ?? '1000');
   const blinds = { sb: Number(params.sb ?? '5'), bb: Number(params.bb ?? '10') };
 
-  const [service] = React.useState(() => {
-    if (mode === 'ble-host' || mode === 'ble-client') return null as unknown as LocalGameService;
+  const [service] = React.useState<GameService>(() => {
+    if (mode === 'ble-host') {
+      const transport = getHostTransport()!;
+      const parsed = JSON.parse(params.clientSeatMap ?? '{}') as Record<string, number>;
+      const seatMap = new Map<string, number>(
+        Object.entries(parsed).map(([k, v]) => [k, Number(v)]),
+      );
+      const playerNames: string[] = JSON.parse(params.playerNames ?? '[]');
+      const svc = new BleHostGameService(transport, seatMap);
+      svc.startGame(playerNames, blinds, initialChips);
+      svc.startRound();
+      return svc;
+    }
+
+    if (mode === 'ble-client') {
+      const transport = getClientTransport()!;
+      return new BleClientGameService(transport, Number(params.seat ?? '0'));
+    }
+
+    // Local modes (hotseat / debug)
+    const playerNames: string[] = JSON.parse(params.playerNames ?? '["P0","P1","P2"]');
     const svc = new LocalGameService();
     svc.startGame(playerNames, blinds, initialChips);
     svc.startRound();
     return svc;
   });
 
-  // BLE game modes — placeholder until Doc 3 (BleGameService)
-  if (mode === 'ble-host' || mode === 'ble-client') {
-    return (
-      <View style={styles.screen}>
-        <Text style={styles.blePlaceholder}>BLEゲームモード（準備中）</Text>
-      </View>
-    );
-  }
+  const viewingSeat = (mode === 'ble-host') ? 0 : Number(params.seat ?? '0');
+
+  // Cleanup transport registry on unmount
+  React.useEffect(() => {
+    return () => {
+      if (mode === 'ble-host') clearHostTransport();
+      if (mode === 'ble-client') clearClientTransport();
+    };
+  }, []);
 
   return (
     <GameProvider service={service} mode={mode}>
@@ -215,5 +236,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 8,
   },
-  blePlaceholder: { color: Colors.text, textAlign: 'center', marginTop: 100, fontSize: 18 },
 });

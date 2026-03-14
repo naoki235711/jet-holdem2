@@ -313,4 +313,21 @@ describe('LobbyHost', () => {
       expect(closedMsgs.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe('getClientSeatMap', () => {
+    it('returns clientId→seat map excluding host', async () => {
+      await host.start();
+      transport.simulateClientConnected('client-1');
+      transport.simulateMessageReceived(
+        'client-1',
+        'lobby',
+        encodeMessage(JSON.stringify({ type: 'join', protocolVersion: 1, playerName: 'Alice' })),
+      );
+      await flushPromises();
+
+      const seatMap = host.getClientSeatMap();
+      expect(seatMap.size).toBe(1);
+      expect(seatMap.get('client-1')).toBe(1);
+    });
+  });
 });

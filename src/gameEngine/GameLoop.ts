@@ -93,6 +93,38 @@ export class GameLoop {
     return result;
   }
 
+  /**
+   * Force-fold a player regardless of turn order.
+   * Used for timeout-based auto-fold on disconnected clients.
+   * Returns true if the fold was applied, false if no action needed.
+   */
+  forceFold(seat: number): boolean {
+    if (!this.bettingRound) return false;
+
+    const player = this._players.find(p => p.seat === seat);
+    if (!player || player.status !== 'active') return false;
+
+    this.bettingRound.forceFold(seat);
+
+    // Check if only one player remains
+    const nonFolded = this._players.filter(p => p.status !== 'folded' && p.status !== 'out');
+    if (nonFolded.length === 1) {
+      this.collectBetsFromRound();
+      this.awardPotToLastPlayer(nonFolded[0]);
+      this._phase = 'roundEnd';
+      this.bettingRound = null;
+      return true;
+    }
+
+    // Check if betting round is complete after force-fold
+    if (this.bettingRound.isComplete) {
+      this.collectBetsFromRound();
+      this.advancePhase();
+    }
+
+    return true;
+  }
+
   resolveShowdown(): ShowdownResult {
     if (this._phase !== 'showdown') {
       throw new Error('Not in showdown phase');

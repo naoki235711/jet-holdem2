@@ -161,6 +161,16 @@ export class LobbyHost {
     this._onError = callback;
   }
 
+  getClientSeatMap(): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const [clientId, player] of this.players) {
+      if (clientId !== '__host__') {
+        map.set(clientId, player.seat);
+      }
+    }
+    return map;
+  }
+
   // --- Helpers ---
 
   private getPlayerList(): LobbyPlayer[] {
