@@ -74,9 +74,9 @@ interface BleTransport {
   stopAdvertising(): Promise<void>;
   onClientConnected(callback: (clientId: string) => void): void;
   onClientDisconnected(callback: (clientId: string) => void): void;
-  onMessageReceived(callback: (clientId: string, data: string) => void): void;
-  sendToClient(clientId: string, characteristicId: string, data: string): Promise<void>;
-  sendToAll(characteristicId: string, data: string): Promise<void>;
+  onMessageReceived(callback: (clientId: string, characteristicId: string, data: Uint8Array) => void): void;
+  sendToClient(clientId: string, characteristicId: string, data: Uint8Array): Promise<void>;
+  sendToAll(characteristicId: string, data: Uint8Array): Promise<void>;
 
   // クライアント側（Central）
   startScanning(serviceUuid: string): Promise<void>;
@@ -84,13 +84,15 @@ interface BleTransport {
   onHostDiscovered(callback: (hostId: string, hostName: string) => void): void;
   connectToHost(hostId: string): Promise<void>;
   disconnect(): Promise<void>;
-  sendToHost(characteristicId: string, data: string): Promise<void>;
+  onMessageReceived(callback: (characteristicId: string, data: Uint8Array) => void): void;
+  sendToHost(characteristicId: string, data: Uint8Array): Promise<void>;
 }
 ```
 
 **設計判断:**
 - ホストとクライアントで役割が大きく異なるため、実装時は `BleHostTransport` / `BleClientTransport` に分離する可能性あり。インターフェース定義の段階では統一しておく
-- `data` はJSON文字列。チャンク分割は `ChunkManager` がトランスポートの上位で処理
+- `data` は `Uint8Array`。BLEのネイティブなデータ型に合わせる。JSON文字列との変換は `ChunkManager` が担当
+- `characteristicId` を `onMessageReceived` コールバックに含めることで、将来のGameState/PrivateHand/PlayerAction等の区別にも対応可能
 - `clientId` はBLE接続IDに対応し、seat割り当ての鍵になる
 
 ---
@@ -103,14 +105,15 @@ interface BleTransport {
 // クライアント → ホスト
 type LobbyClientMessage =
   | { type: 'join'; protocolVersion: number; playerName: string }
-  | { type: 'ready'; seat: number };
+  | { type: 'ready' };  // seatフィールドは不要（ホストがclientIdからseatを特定、なりすまし防止）
 
 // ホスト → クライアント
 type LobbyHostMessage =
   | { type: 'joinResponse'; accepted: true; seat: number; players: LobbyPlayer[] }
   | { type: 'joinResponse'; accepted: false; reason: string }
   | { type: 'playerUpdate'; players: LobbyPlayer[] }
-  | { type: 'gameStart'; blinds: { sb: number; bb: number } };
+  | { type: 'gameStart'; blinds: { sb: number; bb: number } }
+  | { type: 'lobbyClosed'; reason: string };  // ホストがロビーを閉じた時の通知
 
 type LobbyPlayer = {
   seat: number;
@@ -124,6 +127,8 @@ type LobbyPlayer = {
 - `validateHostMessage(data: unknown): LobbyHostMessage | null`
 - パース失敗時は `null` を返し、呼び出し側で無視（不正メッセージに対する防御）
 - `protocolVersion: 1` を固定で検証。不一致なら `accepted: false` で拒否
+
+**Note:** `ready` メッセージに `seat` フィールドを含めない。親設計ドキュメントの `PlayerAction` と同様に、ホスト側でBLE接続IDからseatを特定することで、なりすましを防止する。
 
 ---
 
@@ -141,15 +146,14 @@ IDLE → ADVERTISING → WAITING_FOR_PLAYERS → GAME_STARTING
 ```typescript
 class LobbyHost {
   private state: 'idle' | 'advertising' | 'waitingForPlayers' | 'gameStarting';
-  private players: Map<string, LobbyPlayer>;       // clientId → LobbyPlayer
-  private seatMap: Map<string, number>;             // clientId → seat
+  private players: Map<string, LobbyPlayer>;       // clientId → LobbyPlayer（seat情報を含む）
   private transport: BleTransport;
 
   constructor(transport: BleTransport, hostName: string);
 
-  // ホスト自身はseat 0に固定で着席
+  // ホスト自身はseat 0に固定で着席。最大4人（ホスト含む）
   start(): Promise<void>;                           // → ADVERTISING → WAITING_FOR_PLAYERS
-  stop(): Promise<void>;                            // 広告停止、全接続切断
+  stop(): Promise<void>;                            // lobbyClosed送信 → 広告停止、全接続切断
 
   // BLEイベントハンドラ（transportのコールバックから呼ばれる）
   handleClientConnected(clientId: string): void;
@@ -168,10 +172,18 @@ class LobbyHost {
 
 ### 主要ロジック
 
-- **クライアント接続時:** 空きseat（1〜3）を割り当て、`joinResponse` を返す。4人超は拒否
-- **`ready` 受信時:** 該当プレイヤーをready化、全員に `playerUpdate` 配信
+- **クライアント接続時:** 空きseat（1〜3）を割り当て、`joinResponse` を返す。ホスト含めて4人を超える場合は拒否
+- **重複join受信時:** 既にjoin済みのclientIdからの `join` メッセージは無視する
+- **`ready` 受信時:** clientIdからseatを特定してready化、全員に `playerUpdate` 配信
 - **切断時:** プレイヤーをリストから除去、全員に `playerUpdate` 配信、seatを解放
-- **`startGame()`:** 全員readyかつ2人以上の場合のみ `gameStart` を全員に送信
+- **`startGame()`:** 全員readyかつ2人以上（ホスト含む）の場合のみ `gameStart` を全員に送信
+- **`stop()`:** 全クライアントに `lobbyClosed` メッセージを送信してから接続を切断
+
+### エラーコールバックのトリガー条件
+
+`onError` は以下の条件で発火する：
+- トランスポート層のエラー（広告開始失敗、メッセージ送信失敗）
+- `startGame()` の条件未達（プレイヤー不足、全員readyでない）
 
 ---
 
@@ -290,9 +302,17 @@ tests/ble/
 
 ### MockBleTransport
 
-- `sendToClient` / `sendToHost` の呼び出しを記録
+- `sendToClient` / `sendToHost` の呼び出しを記録（`sentMessages` 配列で検証可能）
 - テスト側からイベントを発火（`simulateClientConnected`, `simulateMessageReceived` 等）
-- Host↔Client結合テストではMock同士を直結してメッセージを中継
+- Host↔Client結合テストでは `MockBleNetwork` ヘルパーを使用:
+  - `MockBleNetwork.create(hostMock, clientMocks[])` でMock同士を接続
+  - ホストの `sendToClient` がクライアントの `onMessageReceived` を自動発火
+  - クライアントの `sendToHost` がホストの `onMessageReceived` を自動発火
+  - `clientId` はMock生成時に連番で自動割り当て（`"client-1"`, `"client-2"` 等）
+
+### タイムアウトテスト
+
+ChunkManagerの5秒タイムアウトテストには `jest.useFakeTimers()` を使用し、`jest.advanceTimersByTime(5000)` でタイムアウトを発火させる。
 
 ---
 
@@ -317,3 +337,15 @@ tests/ble/
 - 切断からの復帰（30秒タイムアウト）
 - iOS `Info.plist` BLE設定
 - Data Persistence（Phase 2）
+
+---
+
+## 9. Future Integration Path
+
+本Phase 1で実装するロビーモジュールは、将来的に以下のように既存アーキテクチャと統合する想定：
+
+- `BleGameService implements GameService` を作成し、`LocalGameService` と同じインターフェースでUIから利用可能にする
+- ホスト側: `LobbyHost.onGameStart` → `GameLoop` を生成 → `BleGameService` が `GameLoop` の状態変更をBLE経由で配信
+- クライアント側: `LobbyClient.onGameStart` → `BleGameService` がホストからのGameState/PrivateHandをsubscribeしてUIに反映
+- 既存の `GameLoop.getPrivateHand(seat)` メソッドは、BLEでの手札配信を見据えた設計になっている
+- GameState配信時には `seq`（シーケンス番号）フィールドを追加し、クライアント側でギャップ検出・再送要求を行う
