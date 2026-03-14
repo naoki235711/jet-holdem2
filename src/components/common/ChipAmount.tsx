@@ -8,11 +8,12 @@ interface ChipAmountProps {
   amount: number;
   color?: string;
   fontSize?: number;
+  testID?: string;
 }
 
-export function ChipAmount({ amount, color = Colors.text, fontSize = 14 }: ChipAmountProps) {
+export function ChipAmount({ amount, color = Colors.text, fontSize = 14, testID }: ChipAmountProps) {
   const formatted = amount.toLocaleString('en-US');
-  return <Text style={[styles.text, { color, fontSize }]}>{formatted}</Text>;
+  return <Text testID={testID} style={[styles.text, { color, fontSize }]}>{formatted}</Text>;
 }
 
 const styles = StyleSheet.create({
