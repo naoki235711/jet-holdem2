@@ -211,6 +211,21 @@ describe('GameLoop', () => {
     });
   });
 
+  describe('getMinRaiseSize', () => {
+    it('returns BB when no betting round active', () => {
+      const players = makeGamePlayers(3, 1000);
+      const loop = new GameLoop(players, { sb: 5, bb: 10 });
+      expect(loop.getMinRaiseSize()).toBe(10);
+    });
+
+    it('returns BB during preflop before any raise', () => {
+      const players = makeGamePlayers(3, 1000);
+      const loop = new GameLoop(players, { sb: 5, bb: 10 });
+      loop.startRound();
+      expect(loop.getMinRaiseSize()).toBe(10);
+    });
+  });
+
   describe('edge cases', () => {
     it('handleAction returns error when no betting round is active', () => {
       const game = new GameLoop(makeGamePlayers(2), DEFAULT_BLINDS);

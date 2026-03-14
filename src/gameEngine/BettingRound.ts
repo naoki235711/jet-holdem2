@@ -72,6 +72,10 @@ export class BettingRound {
     return this._activeSeat;
   }
 
+  get minRaise(): number {
+    return this.minRaiseSize;
+  }
+
   get isComplete(): boolean {
     // Only one non-folded player left
     const nonFolded = this.players.filter(p => p.status !== 'folded' && p.status !== 'out');
