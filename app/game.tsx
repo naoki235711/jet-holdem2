@@ -10,6 +10,7 @@ import { PlayerSeat } from '../src/components/table/PlayerSeat';
 import { CommunityCards } from '../src/components/table/CommunityCards';
 import { PotDisplay } from '../src/components/table/PotDisplay';
 import { ActionButtons } from '../src/components/actions/ActionButtons';
+import { ResultOverlay } from '../src/components/result/ResultOverlay';
 import { Colors } from '../src/theme/colors';
 
 function TableLayout() {
@@ -82,6 +83,7 @@ export default function GameScreen() {
       <View style={styles.screen}>
         <TableLayout />
         <ActionButtons />
+        <ResultOverlay />
       </View>
     </GameProvider>
   );
