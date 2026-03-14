@@ -1,9 +1,23 @@
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  roots: ['<rootDir>/tests'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  transform: {
-    '^.+\\.tsx?$': 'ts-jest',
-  },
+  projects: [
+    {
+      displayName: 'engine',
+      preset: 'ts-jest',
+      testEnvironment: 'node',
+      roots: ['<rootDir>/tests/gameEngine', '<rootDir>/tests/services'],
+      moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+      transform: {
+        '^.+\\.tsx?$': 'ts-jest',
+      },
+    },
+    {
+      displayName: 'ui',
+      preset: 'jest-expo',
+      roots: ['<rootDir>/tests/ui'],
+      setupFiles: ['@testing-library/jest-native/extend-expect'],
+      transformIgnorePatterns: [
+        'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*)',
+      ],
+    },
+  ],
 };
