@@ -79,9 +79,9 @@ describe('GameLoop', () => {
       game.startRound();
       game.handleAction(0, { action: 'call' });
       game.handleAction(1, { action: 'check' });
-      // Flop: BB acts first post-flop
-      game.handleAction(1, { action: 'check' });
+      // Flop: Heads-up SB (seat 0 = dealer) acts first post-flop
       game.handleAction(0, { action: 'check' });
+      game.handleAction(1, { action: 'check' });
       expect(game.phase).toBe('turn');
       expect(game.community).toHaveLength(4);
     });
@@ -91,11 +91,11 @@ describe('GameLoop', () => {
       game.startRound();
       game.handleAction(0, { action: 'call' });
       game.handleAction(1, { action: 'check' });
-      game.handleAction(1, { action: 'check' });
       game.handleAction(0, { action: 'check' });
-      // Turn
       game.handleAction(1, { action: 'check' });
+      // Turn: SB (seat 0) acts first
       game.handleAction(0, { action: 'check' });
+      game.handleAction(1, { action: 'check' });
       expect(game.phase).toBe('river');
       expect(game.community).toHaveLength(5);
     });
@@ -105,13 +105,13 @@ describe('GameLoop', () => {
       game.startRound();
       game.handleAction(0, { action: 'call' });
       game.handleAction(1, { action: 'check' });
-      game.handleAction(1, { action: 'check' });
       game.handleAction(0, { action: 'check' });
       game.handleAction(1, { action: 'check' });
       game.handleAction(0, { action: 'check' });
-      // River
       game.handleAction(1, { action: 'check' });
+      // River: SB (seat 0) acts first
       game.handleAction(0, { action: 'check' });
+      game.handleAction(1, { action: 'check' });
       expect(game.phase).toBe('showdown');
     });
   });
@@ -134,15 +134,15 @@ describe('GameLoop', () => {
     it('resolveShowdown awards pot to winner and transitions to roundEnd', () => {
       const game = new GameLoop(makeGamePlayers(2), DEFAULT_BLINDS);
       game.startRound();
-      // Play through all streets with checks
+      // Play through all streets with checks (heads-up: SB/dealer acts first postflop)
       game.handleAction(0, { action: 'call' });
       game.handleAction(1, { action: 'check' });
-      game.handleAction(1, { action: 'check' });
       game.handleAction(0, { action: 'check' });
       game.handleAction(1, { action: 'check' });
       game.handleAction(0, { action: 'check' });
       game.handleAction(1, { action: 'check' });
       game.handleAction(0, { action: 'check' });
+      game.handleAction(1, { action: 'check' });
       expect(game.phase).toBe('showdown');
 
       const result = game.resolveShowdown();

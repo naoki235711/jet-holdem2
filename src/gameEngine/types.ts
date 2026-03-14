@@ -66,4 +66,5 @@ export interface GameState {
   dealer: number;       // Seat number of dealer button
   blinds: Blinds;
   players: Player[];
+  foldWin?: { seat: number; amount: number };
 }

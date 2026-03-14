@@ -19,6 +19,7 @@ export class GameLoop {
   private deck: Deck;
   private bettingRound: BettingRound | null;
   private potManager: PotManager;
+  private _foldWin: { seat: number; amount: number } | null;
 
   constructor(players: Player[], blinds: Blinds, dealer = 0) {
     this._players = players;
@@ -30,6 +31,7 @@ export class GameLoop {
     this.deck = new Deck();
     this.bettingRound = null;
     this.potManager = new PotManager();
+    this._foldWin = null;
   }
 
   get phase(): Phase { return this._phase; }
@@ -42,6 +44,7 @@ export class GameLoop {
     this.deck.reset();
     this._community = [];
     this.potManager.reset();
+    this._foldWin = null;
     this._seq++;
 
     for (const p of this._players) {
@@ -178,6 +181,7 @@ export class GameLoop {
         ...p,
         cards: [...p.cards],
       })),
+      foldWin: this._foldWin ?? undefined,
     };
   }
 
@@ -252,9 +256,12 @@ export class GameLoop {
     const seatOrder = activePlayers.map(p => p.seat);
     const dealerIdx = seatOrder.indexOf(this._dealer);
     // Find first active player after dealer
+    // Heads-up exception: SB (= dealer) acts first postflop
     let firstToAct: number;
     if (dealerIdx === -1) {
       firstToAct = seatOrder[0];
+    } else if (seatOrder.length === 2) {
+      firstToAct = seatOrder[dealerIdx];
     } else {
       firstToAct = seatOrder[(dealerIdx + 1) % seatOrder.length];
     }
@@ -264,6 +271,7 @@ export class GameLoop {
   private awardPotToLastPlayer(player: Player): void {
     const total = this.potManager.getTotal();
     player.chips += total;
+    this._foldWin = { seat: player.seat, amount: total };
     this.potManager.reset();
   }
 }
