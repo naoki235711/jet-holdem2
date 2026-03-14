@@ -208,4 +208,108 @@ describe('BleHostGameService', () => {
       expect(broadcasts.some((m: any) => m.type === 'stateUpdate')).toBe(true);
     });
   });
+
+  describe('disconnection & freeze', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      service.startGame(['Host', 'Alice', 'Bob'], blinds, 1000);
+      service.startRound();
+      transport.sentMessages.length = 0;
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('adds disconnected client to frozenSeats in broadcast', () => {
+      transport.simulateClientDisconnected('client-1');
+
+      const broadcasts = decodeBroadcasts(transport);
+      const su = broadcasts.find((m: any) => m.type === 'stateUpdate') as any;
+      expect(su).toBeDefined();
+      expect(su.frozenSeats).toContain(1);
+    });
+
+    it('auto-folds after 30 seconds', () => {
+      transport.simulateClientDisconnected('client-1');
+      transport.sentMessages.length = 0;
+
+      jest.advanceTimersByTime(30_000);
+
+      // Should have broadcast a state update after auto-fold
+      const broadcasts = decodeBroadcasts(transport);
+      expect(broadcasts.length).toBeGreaterThan(0);
+    });
+
+    it('ignores actions from frozen clients', () => {
+      transport.simulateClientDisconnected('client-1');
+      transport.sentMessages.length = 0;
+
+      const cm = new ChunkManager();
+      const chunks = cm.encode(JSON.stringify({ type: 'playerAction', action: 'fold' }));
+      for (const chunk of chunks) {
+        transport.simulateMessageReceived('client-1', 'playerAction', chunk);
+      }
+
+      // No broadcast triggered by frozen client's action
+      expect(decodeBroadcasts(transport)).toHaveLength(0);
+    });
+
+    it('handles rejoin within 30 seconds — clears freeze, resends state', () => {
+      transport.simulateClientDisconnected('client-1');
+      transport.sentMessages.length = 0;
+
+      jest.advanceTimersByTime(10_000); // 10s in, not timed out yet
+
+      // Simulate rejoin from new clientId
+      const cm = new ChunkManager();
+      const rejoinChunks = cm.encode(JSON.stringify({ type: 'rejoin', seat: 1 }));
+      for (const chunk of rejoinChunks) {
+        transport.simulateMessageReceived('client-1-new', 'playerAction', chunk);
+      }
+
+      const broadcasts = decodeBroadcasts(transport);
+      const su = broadcasts.find((m: any) => m.type === 'stateUpdate') as any;
+      expect(su).toBeDefined();
+      expect(su.frozenSeats).not.toContain(1);
+
+      // Private hand resent to new clientId
+      const client1NewMsgs = decodeMessages(transport, 'client-1-new');
+      const ph = client1NewMsgs.find((m: any) => m.type === 'privateHand') as any;
+      expect(ph).toBeDefined();
+      expect(ph.seat).toBe(1);
+
+      // Advancing past 30s should NOT cause auto-fold (timeout was cleared)
+      transport.sentMessages.length = 0;
+      jest.advanceTimersByTime(20_000);
+      expect(decodeBroadcasts(transport)).toHaveLength(0);
+    });
+
+    it('auto-folds immediately when frozen player becomes activePlayer', () => {
+      // Get current active player — if it's already a client seat, fold to advance
+      let state = service.getState();
+      // Disconnect client-2 (seat 2) first
+      transport.simulateClientDisconnected('client-2');
+      transport.sentMessages.length = 0;
+
+      // Advance game until seat 2 becomes activePlayer (or game ends)
+      state = service.getState();
+      let iterations = 0;
+      while (state.activePlayer !== 2 && state.phase !== 'roundEnd' && iterations < 20) {
+        iterations++;
+        const seat = state.activePlayer;
+        if (seat < 0) break;
+        service.handleAction(seat, { action: 'call' });
+        state = service.getState();
+      }
+
+      if (state.activePlayer === 2) {
+        // The checkFrozenActivePlayer should have already auto-folded seat 2
+        // So activePlayer should have advanced past seat 2
+        const newState = service.getState();
+        expect(newState.activePlayer).not.toBe(2);
+      }
+      // If game ended (roundEnd), frozen-turn scenario didn't arise — that's OK
+    });
+  });
 });

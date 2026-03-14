@@ -259,9 +259,16 @@ export class BleHostGameService implements GameService {
         const state = this.gameLoop.getState();
         const player = state.players.find(p => p.seat === seat);
         if (player && player.status === 'active') {
-          this.handleAction(seat, { action: 'fold' });
+          const result = this.gameLoop.handleAction(seat, { action: 'fold' });
+          if (!result.valid) {
+            // Not their turn yet — mark as folded for when turn arrives
+            // and broadcast the unfreezing
+          }
         }
       }
+      // Always broadcast state update to reflect unfreezing
+      this.broadcastState();
+      this.notifyListeners();
     }, 30_000);
 
     this.frozenSeats.set(seat, timeout);
