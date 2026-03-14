@@ -12,9 +12,9 @@ module.exports = {
     },
     {
       displayName: 'ui',
-      preset: 'jest-expo',
-      roots: ['<rootDir>/tests/ui'],
-      setupFiles: ['@testing-library/jest-native/extend-expect'],
+      preset: 'react-native',
+      roots: ['<rootDir>/tests/ui', '<rootDir>/src'],
+      setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
       transformIgnorePatterns: [
         'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*)',
       ],
