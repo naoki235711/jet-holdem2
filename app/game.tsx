@@ -105,7 +105,6 @@ function GameView() {
     const prevActive = prevActiveRef.current;
 
     if (
-      prevActive >= 0 &&
       currentActive >= 0 &&
       currentActive !== prevActive &&
       state.phase !== 'roundEnd' &&

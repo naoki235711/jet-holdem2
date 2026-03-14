@@ -26,7 +26,10 @@ export function RaiseSlider({ minRaise, maxRaise, bbSize, value, onValueChange }
         maximumValue={maxRaise}
         step={step}
         value={value}
-        onValueChange={onValueChange}
+        onValueChange={(v) => {
+          // Snap to maxRaise when within one step (slider step may not evenly divide the range)
+          onValueChange(v + step > maxRaise ? maxRaise : v);
+        }}
         minimumTrackTintColor={Colors.active}
         maximumTrackTintColor={Colors.subText}
         thumbTintColor={Colors.active}
