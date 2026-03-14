@@ -1,12 +1,13 @@
 // src/components/lobby/LobbyView.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/colors';
 import { LobbyModeSelector, LobbyMode } from './LobbyModeSelector';
 import { HostSetupForm } from './HostSetupForm';
 import { JoinSetupForm } from './JoinSetupForm';
+import { repository } from '../../services/persistence';
 
 const PLAYER_COUNTS = [2, 3, 4];
 const DEFAULT_NAMES = ['Player 0', 'Player 1', 'Player 2', 'Player 3'];
@@ -21,14 +22,52 @@ export function LobbyView() {
   const [bb, setBb] = useState('10');
   const [mode, setMode] = useState<'hotseat' | 'debug'>('hotseat');
 
+  // Restore saved settings on mount
+  useEffect(() => {
+    repository.getSettings().then(saved => {
+      if (saved) {
+        setInitialChips(String(saved.initialChips));
+        setSb(String(saved.sb));
+        setBb(String(saved.bb));
+        if (saved.playerNames.length > 0) {
+          setNames(prev => {
+            const next = [...prev];
+            saved.playerNames.forEach((name, i) => { next[i] = name; });
+            return next;
+          });
+          setPlayerCount(saved.playerNames.length);
+        }
+      }
+    });
+  }, []);
+
   const updateName = (index: number, name: string) => {
     const next = [...names];
     next[index] = name;
     setNames(next);
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     const playerNames = names.slice(0, playerCount).map((n, i) => n || `Player ${i}`);
+
+    // Save current settings
+    repository.saveSettings({
+      initialChips: Number(initialChips),
+      sb: Number(sb),
+      bb: Number(bb),
+      playerNames,
+    });
+
+    // Load saved chips for each player
+    const chipsByPlayer: Record<string, number> = {};
+    for (const name of playerNames) {
+      const saved = await repository.getPlayerChips(name);
+      if (saved !== null) {
+        chipsByPlayer[name] = saved;
+      }
+    }
+    const hasChips = Object.keys(chipsByPlayer).length > 0;
+
     router.push({
       pathname: '/game',
       params: {
@@ -37,6 +76,7 @@ export function LobbyView() {
         sb,
         bb,
         mode,
+        ...(hasChips ? { playerChips: JSON.stringify(chipsByPlayer) } : {}),
       },
     });
   };
