@@ -36,8 +36,51 @@ export function validateClientMessage(data: unknown): LobbyClientMessage | null 
   }
 }
 
+function isLobbyPlayerArray(value: unknown): value is LobbyPlayer[] {
+  if (!Array.isArray(value)) return false;
+  return value.every(
+    (p) =>
+      isObject(p) &&
+      typeof p.seat === 'number' &&
+      typeof p.name === 'string' &&
+      typeof p.ready === 'boolean',
+  );
+}
+
+function isValidBlinds(value: unknown): value is { sb: number; bb: number } {
+  return isObject(value) && typeof value.sb === 'number' && typeof value.bb === 'number';
+}
+
 export function validateHostMessage(data: unknown): LobbyHostMessage | null {
-  // Stub — implemented in step group B
   if (!isObject(data)) return null;
-  return null;
+
+  switch (data.type) {
+    case 'joinResponse':
+      if (data.accepted === true) {
+        if (typeof data.seat !== 'number') return null;
+        if (!isLobbyPlayerArray(data.players)) return null;
+        return {
+          type: 'joinResponse',
+          accepted: true,
+          seat: data.seat,
+          players: data.players,
+        };
+      }
+      if (data.accepted === false) {
+        if (typeof data.reason !== 'string') return null;
+        return { type: 'joinResponse', accepted: false, reason: data.reason };
+      }
+      return null;
+    case 'playerUpdate':
+      if (!isLobbyPlayerArray(data.players)) return null;
+      return { type: 'playerUpdate', players: data.players };
+    case 'gameStart':
+      if (!isValidBlinds(data.blinds)) return null;
+      return { type: 'gameStart', blinds: data.blinds as { sb: number; bb: number } };
+    case 'lobbyClosed':
+      if (typeof data.reason !== 'string') return null;
+      return { type: 'lobbyClosed', reason: data.reason };
+    default:
+      return null;
+  }
 }
