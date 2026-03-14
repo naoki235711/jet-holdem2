@@ -43,6 +43,9 @@ Thumbs.db
 # Jest
 coverage/
 
+# Playwright
+test-results/
+
 # Build outputs
 *.jks
 *.p8

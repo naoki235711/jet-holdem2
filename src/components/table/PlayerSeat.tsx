@@ -43,10 +43,10 @@ export function PlayerSeat({ seat }: PlayerSeatProps) {
         ))}
       </View>
 
-      <ChipAmount amount={player.chips} color={Colors.text} fontSize={12} />
+      <ChipAmount amount={player.chips} color={Colors.text} fontSize={12} testID={`chip-stack-${seat}`} />
 
       {player.bet > 0 && (
-        <ChipAmount amount={player.bet} color={Colors.pot} fontSize={11} />
+        <ChipAmount amount={player.bet} color={Colors.pot} fontSize={11} testID={`bet-amount-${seat}`} />
       )}
     </View>
   );

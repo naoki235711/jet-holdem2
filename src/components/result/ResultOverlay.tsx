@@ -31,7 +31,14 @@ export function ResultOverlay() {
       <View style={styles.overlay} testID="result-overlay">
         <View style={styles.modal}>
           {foldWinner ? (
-            <Text style={styles.winnerName}>{foldWinner.name} wins!</Text>
+            <View style={styles.winnerBlock}>
+              <Text testID="winner-text" style={styles.winnerName}>{foldWinner.name} wins!</Text>
+              {state.foldWin && (
+                <Text style={styles.potWon}>
+                  {state.foldWin.amount.toLocaleString('en-US')} chips
+                </Text>
+              )}
+            </View>
           ) : showdownResult ? (
             <View style={styles.winnerBlock}>
               <Text style={styles.potWon}>
@@ -88,13 +95,14 @@ export function ResultOverlay() {
 
           {isGameOver ? (
             <TouchableOpacity
+              testID="back-to-lobby-btn"
               style={styles.actionBtn}
               onPress={() => router.replace('/')}
             >
               <Text style={styles.actionBtnText}>ロビーに戻る</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.actionBtn} onPress={nextRound}>
+            <TouchableOpacity testID="next-round-btn" style={styles.actionBtn} onPress={nextRound}>
               <Text style={styles.actionBtnText}>次のラウンドへ</Text>
             </TouchableOpacity>
           )}

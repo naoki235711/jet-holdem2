@@ -46,6 +46,7 @@ export function LobbyView() {
         {PLAYER_COUNTS.map(n => (
           <TouchableOpacity
             key={n}
+            testID={`count-btn-${n}`}
             style={[styles.countBtn, playerCount === n && styles.countBtnActive]}
             onPress={() => setPlayerCount(n)}
           >
@@ -103,6 +104,7 @@ export function LobbyView() {
       <Text style={styles.label}>モード</Text>
       <View style={styles.modeRow}>
         <TouchableOpacity
+          testID="mode-btn-hotseat"
           style={[styles.modeBtn, mode === 'hotseat' && styles.modeBtnActive]}
           onPress={() => setMode('hotseat')}
         >
@@ -111,6 +113,7 @@ export function LobbyView() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
+          testID="mode-btn-debug"
           style={[styles.modeBtn, mode === 'debug' && styles.modeBtnActive]}
           onPress={() => setMode('debug')}
         >
@@ -120,7 +123,7 @@ export function LobbyView() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.startBtn} onPress={handleStart}>
+      <TouchableOpacity testID="start-btn" style={styles.startBtn} onPress={handleStart}>
         <Text style={styles.startBtnText}>ゲーム開始</Text>
       </TouchableOpacity>
     </ScrollView>

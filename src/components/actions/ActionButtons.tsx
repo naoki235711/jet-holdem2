@@ -37,7 +37,7 @@ export function ActionButtons() {
     }
   };
 
-  if (!state) return null;
+  if (!state || state.phase === 'roundEnd' || state.phase === 'showdown') return null;
 
   const disabled = !isMyTurn;
   const showAllIn = info && !info.canRaise && info.callAmount > 0;
