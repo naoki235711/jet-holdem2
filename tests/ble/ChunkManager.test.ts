@@ -37,15 +37,21 @@ describe('ChunkManager', () => {
   });
 
   describe('decode', () => {
+    let cm: ChunkManager;
+
+    afterEach(() => {
+      cm?.clear();
+    });
+
     it('decodes a single-chunk message immediately', () => {
-      const cm = new ChunkManager(185);
+      cm = new ChunkManager(185);
       const chunks = cm.encode('{"type":"ready"}');
       const result = cm.decode('sender-1', chunks[0]);
       expect(result).toBe('{"type":"ready"}');
     });
 
     it('returns null for incomplete multi-chunk message', () => {
-      const cm = new ChunkManager(10);
+      cm = new ChunkManager(10);
       const chunks = cm.encode('ABCDEFGHIJKLMNOPQRST');
       expect(chunks.length).toBeGreaterThan(1);
       const result = cm.decode('sender-1', chunks[0]);
@@ -53,7 +59,7 @@ describe('ChunkManager', () => {
     });
 
     it('reassembles a multi-chunk message when all chunks arrive', () => {
-      const cm = new ChunkManager(10);
+      cm = new ChunkManager(10);
       const original = 'ABCDEFGHIJKLMNOPQRST';
       const chunks = cm.encode(original);
       for (let i = 0; i < chunks.length - 1; i++) {
@@ -64,7 +70,7 @@ describe('ChunkManager', () => {
     });
 
     it('reassembles chunks arriving out of order', () => {
-      const cm = new ChunkManager(10);
+      cm = new ChunkManager(10);
       const original = 'ABCDEFGHIJKLMNOPQRST';
       const chunks = cm.encode(original);
       // Send last chunk first, then the rest
@@ -77,7 +83,7 @@ describe('ChunkManager', () => {
     });
 
     it('handles multiple senders independently', () => {
-      const cm = new ChunkManager(10);
+      cm = new ChunkManager(10);
       const msg1 = 'ABCDEFGHIJKLMNOPQRST';
       const msg2 = 'UVWXYZ1234567890ABCD';
       const chunks1 = cm.encode(msg1);
