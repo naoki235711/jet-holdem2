@@ -14,6 +14,7 @@ module.exports = {
       displayName: 'ui',
       preset: 'react-native',
       roots: ['<rootDir>/tests/ui', '<rootDir>/src'],
+      setupFiles: ['<rootDir>/tests/ui/setup.js'],
       setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
       transformIgnorePatterns: [
         'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*)',
