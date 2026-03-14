@@ -3,6 +3,7 @@ import { ChunkManager } from './ChunkManager';
 import {
   LobbyPlayer,
   LobbyHostMessage,
+  GameSettings,
   validateClientMessage,
 } from './LobbyProtocol';
 
@@ -23,6 +24,7 @@ export class LobbyHost {
   constructor(
     private transport: BleHostTransport,
     private hostName: string,
+    private gameSettings: GameSettings = { sb: 5, bb: 10, initialChips: 1000 },
   ) {}
 
   async start(): Promise<void> {
@@ -49,7 +51,7 @@ export class LobbyHost {
     this.chunkManager.clear();
   }
 
-  startGame(blinds: { sb: number; bb: number } = { sb: 5, bb: 10 }): void {
+  startGame(): void {
     const playerList = this.getPlayerList();
     const nonHostPlayers = playerList.filter((p) => p.seat !== 0);
 
@@ -63,7 +65,12 @@ export class LobbyHost {
     }
 
     this.state = 'gameStarting';
-    this.sendToAll({ type: 'gameStart', blinds });
+    const blinds = { sb: this.gameSettings.sb, bb: this.gameSettings.bb };
+    this.sendToAll({
+      type: 'gameStart',
+      blinds,
+      initialChips: this.gameSettings.initialChips,
+    });
     this._onGameStart?.(blinds);
   }
 
@@ -128,6 +135,7 @@ export class LobbyHost {
       accepted: true,
       seat,
       players: this.getPlayerList(),
+      gameSettings: this.gameSettings,
     });
   }
 
