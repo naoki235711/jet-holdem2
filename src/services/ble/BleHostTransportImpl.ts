@@ -73,15 +73,28 @@ export class BleHostTransportImpl implements BleHostTransport {
   }
 
   async sendToClient(
-    _clientId: string,
-    _characteristicId: string,
-    _data: Uint8Array,
+    clientId: string,
+    characteristicId: string,
+    data: Uint8Array,
   ): Promise<void> {
-    throw new Error('Not implemented yet');
+    const uuid = this.charMap.get(characteristicId);
+    if (!uuid) {
+      throw new Error(`Unknown characteristic: ${characteristicId}`);
+    }
+    await Peripheral.sendNotification(
+      BLE_SERVICE_UUID,
+      uuid,
+      Array.from(data),
+      clientId,
+    );
   }
 
-  async sendToAll(_characteristicId: string, _data: Uint8Array): Promise<void> {
-    throw new Error('Not implemented yet');
+  async sendToAll(characteristicId: string, data: Uint8Array): Promise<void> {
+    const uuid = this.charMap.get(characteristicId);
+    if (!uuid) {
+      throw new Error(`Unknown characteristic: ${characteristicId}`);
+    }
+    await Peripheral.sendNotification(BLE_SERVICE_UUID, uuid, Array.from(data));
   }
 
   private handleWrite(event: {

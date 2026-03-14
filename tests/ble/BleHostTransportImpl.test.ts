@@ -24,7 +24,8 @@ jest.mock('react-native-multi-ble-peripheral', () => ({
   addCharacteristic: (a: string, b: string, c: number) => mockAddCharacteristic(a, b, c),
   start: () => mockStart(),
   stop: () => mockStop(),
-  sendNotification: (a: string, b: string, c: number[], d?: string) => mockSendNotification(a, b, c, d),
+  sendNotification: (a: string, b: string, c: number[], d?: string) =>
+    d !== undefined ? mockSendNotification(a, b, c, d) : mockSendNotification(a, b, c),
   onWrite: (cb: Function) => mockOnWrite(cb),
 }));
 
@@ -211,6 +212,60 @@ describe('BleHostTransportImpl', () => {
       });
 
       expect(connectCb).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('sendToClient', () => {
+    beforeEach(async () => {
+      await transport.startAdvertising('JetHoldem');
+      // Register a client
+      writeListener!({
+        requestId: 'req-1',
+        deviceId: 'client-A',
+        characteristicId: LOBBY_CHARACTERISTIC_UUID,
+        data: [1],
+      });
+    });
+
+    it('sends notification with number[] data to specific device', async () => {
+      const data = new Uint8Array([10, 20, 30]);
+      await transport.sendToClient('client-A', 'lobby', data);
+
+      expect(mockSendNotification).toHaveBeenCalledWith(
+        BLE_SERVICE_UUID,
+        LOBBY_CHARACTERISTIC_UUID,
+        [10, 20, 30],
+        'client-A',
+      );
+    });
+
+    it('throws for unknown logical name', async () => {
+      await expect(
+        transport.sendToClient('client-A', 'nonexistent', new Uint8Array([1])),
+      ).rejects.toThrow('Unknown characteristic');
+    });
+  });
+
+  describe('sendToAll', () => {
+    beforeEach(async () => {
+      await transport.startAdvertising('JetHoldem');
+    });
+
+    it('sends broadcast notification without deviceId', async () => {
+      const data = new Uint8Array([5, 10]);
+      await transport.sendToAll('lobby', data);
+
+      expect(mockSendNotification).toHaveBeenCalledWith(
+        BLE_SERVICE_UUID,
+        LOBBY_CHARACTERISTIC_UUID,
+        [5, 10],
+      );
+    });
+
+    it('throws for unknown logical name', async () => {
+      await expect(
+        transport.sendToAll('nonexistent', new Uint8Array([1])),
+      ).rejects.toThrow('Unknown characteristic');
     });
   });
 });
