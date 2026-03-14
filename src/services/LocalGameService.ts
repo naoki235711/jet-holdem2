@@ -34,7 +34,8 @@ export class LocalGameService implements GameService {
 
   getActionInfo(seat: number): ActionInfo {
     const state = this.getState();
-    const player = state.players.find(p => p.seat === seat)!;
+    const player = state.players.find(p => p.seat === seat);
+    if (!player) throw new Error(`Invalid seat: ${seat}`);
     const minRaiseIncrement = this.gameLoop!.getMinRaiseSize();
     const minRaiseTo = state.currentBet + minRaiseIncrement;
     const maxRaiseTo = player.chips + player.bet;
@@ -62,12 +63,14 @@ export class LocalGameService implements GameService {
   }
 
   startRound(): void {
-    this.gameLoop!.startRound();
+    if (!this.gameLoop) throw new Error('Game not started');
+    this.gameLoop.startRound();
     this.notify();
   }
 
   handleAction(seat: number, action: PlayerAction): ActionResult {
-    const result = this.gameLoop!.handleAction(seat, action);
+    if (!this.gameLoop) throw new Error('Game not started');
+    const result = this.gameLoop.handleAction(seat, action);
     if (!result.valid && result.reason) {
       return { valid: false, reason: translateError(result.reason) };
     }
@@ -76,13 +79,15 @@ export class LocalGameService implements GameService {
   }
 
   resolveShowdown(): ShowdownResult {
-    const result = this.gameLoop!.resolveShowdown();
+    if (!this.gameLoop) throw new Error('Game not started');
+    const result = this.gameLoop.resolveShowdown();
     this.notify();
     return result;
   }
 
   prepareNextRound(): void {
-    this.gameLoop!.prepareNextRound();
+    if (!this.gameLoop) throw new Error('Game not started');
+    this.gameLoop.prepareNextRound();
     this.notify();
   }
 

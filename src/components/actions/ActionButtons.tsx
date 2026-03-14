@@ -11,7 +11,7 @@ export function ActionButtons() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [raiseValue, setRaiseValue] = useState(0);
 
-  const actingSeat = viewingSeat;
+  const actingSeat = mode === 'debug' ? (state?.activePlayer ?? -1) : viewingSeat;
   const isMyTurn = state?.activePlayer === actingSeat && state?.activePlayer >= 0;
 
   const info = useMemo(() => {

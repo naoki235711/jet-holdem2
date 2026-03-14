@@ -46,13 +46,25 @@ describe('ActionButtons', () => {
     expect(screen.getByText(/ALL IN/)).toBeTruthy();
   });
 
-  it('disables all buttons when not active player turn', () => {
+  it('disables all buttons when not active player turn in hotseat mode', () => {
+    const { getByTestId } = renderWithGame(<ActionButtons />, {
+      state: createMockGameState({ activePlayer: 1 }),
+      viewingSeat: 0,
+      mode: 'hotseat',
+    });
+    expect(getByTestId('fold-btn').props.accessibilityState?.disabled).toBe(true);
+  });
+
+  it('enables buttons in debug mode regardless of viewingSeat', () => {
     const { getByTestId } = renderWithGame(<ActionButtons />, {
       state: createMockGameState({ activePlayer: 1 }),
       viewingSeat: 0,
       mode: 'debug',
+      getActionInfo: jest.fn(() => ({
+        canCheck: true, callAmount: 0, minRaise: 20, maxRaise: 1000, canRaise: true,
+      })),
     });
-    expect(getByTestId('fold-btn').props.accessibilityState?.disabled).toBe(true);
+    expect(getByTestId('fold-btn').props.accessibilityState?.disabled).toBe(false);
   });
 
   it('calls doAction with fold when FOLD pressed', () => {
