@@ -25,6 +25,26 @@ describe('LocalGameService', () => {
       const state = service.getState();
       expect(state.phase).toBe('waiting');
     });
+
+    it('uses savedChips for known players when provided', () => {
+      const svc = new LocalGameService();
+      svc.startGame(['Alice', 'Bob', 'Charlie'], { sb: 5, bb: 10 }, 1000, {
+        Alice: 1500,
+        Bob: 800,
+      });
+      const state = svc.getState();
+      expect(state.players[0].chips).toBe(1500); // Alice: saved
+      expect(state.players[1].chips).toBe(800);  // Bob: saved
+      expect(state.players[2].chips).toBe(1000); // Charlie: fallback to initialChips
+    });
+
+    it('falls back to initialChips when savedChips is undefined', () => {
+      const svc = new LocalGameService();
+      svc.startGame(['Alice', 'Bob'], { sb: 5, bb: 10 }, 1000);
+      const state = svc.getState();
+      expect(state.players[0].chips).toBe(1000);
+      expect(state.players[1].chips).toBe(1000);
+    });
   });
 
   describe('startRound', () => {

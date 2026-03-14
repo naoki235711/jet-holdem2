@@ -49,11 +49,11 @@ export class LocalGameService implements GameService {
     };
   }
 
-  startGame(playerNames: string[], blinds: Blinds, initialChips: number): void {
+  startGame(playerNames: string[], blinds: Blinds, initialChips: number, savedChips?: Record<string, number>): void {
     const players: Player[] = playerNames.map((name, i) => ({
       seat: i,
       name,
-      chips: initialChips,
+      chips: savedChips?.[name] ?? initialChips,
       status: 'active' as PlayerStatus,
       bet: 0,
       cards: [],
