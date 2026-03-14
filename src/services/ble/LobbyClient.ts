@@ -4,6 +4,7 @@ import {
   LobbyPlayer,
   LobbyClientMessage,
   LobbyHostMessage,
+  GameSettings,
   validateHostMessage,
   PROTOCOL_VERSION,
 } from './LobbyProtocol';
@@ -12,16 +13,25 @@ const LOBBY_CHARACTERISTIC = 'lobby';
 
 type LobbyClientState = 'idle' | 'scanning' | 'connecting' | 'joined' | 'ready' | 'gameStarting';
 
+export type JoinResult =
+  | { accepted: true; gameSettings: GameSettings }
+  | { accepted: false; reason: string };
+
+export type GameStartConfig = {
+  blinds: { sb: number; bb: number };
+  initialChips: number;
+};
+
 export class LobbyClient {
   private state: LobbyClientState = 'idle';
-  private mySeat: number | null = null;
+  private _mySeat: number | null = null;
   private players: LobbyPlayer[] = [];
   private chunkManager = new ChunkManager();
 
   private _onHostDiscovered: ((hostId: string, hostName: string) => void) | null = null;
-  private _onJoinResult: ((accepted: boolean, reason?: string) => void) | null = null;
+  private _onJoinResult: ((result: JoinResult) => void) | null = null;
   private _onPlayersChanged: ((players: LobbyPlayer[]) => void) | null = null;
-  private _onGameStart: ((blinds: { sb: number; bb: number }) => void) | null = null;
+  private _onGameStart: ((config: GameStartConfig) => void) | null = null;
   private _onDisconnected: (() => void) | null = null;
   private _onError: ((error: string) => void) | null = null;
 
@@ -29,6 +39,10 @@ export class LobbyClient {
     private transport: BleClientTransport,
     private playerName: string,
   ) {}
+
+  get mySeat(): number | null {
+    return this._mySeat;
+  }
 
   async startScanning(): Promise<void> {
     this.state = 'scanning';
@@ -60,7 +74,7 @@ export class LobbyClient {
   async disconnect(): Promise<void> {
     await this.transport.disconnect();
     this.state = 'idle';
-    this.mySeat = null;
+    this._mySeat = null;
     this.players = [];
     this.chunkManager.clear();
   }
@@ -88,7 +102,7 @@ export class LobbyClient {
         break;
       case 'gameStart':
         this.state = 'gameStarting';
-        this._onGameStart?.(msg.blinds);
+        this._onGameStart?.({ blinds: msg.blinds, initialChips: msg.initialChips });
         break;
       case 'lobbyClosed':
         this.state = 'idle';
@@ -100,12 +114,12 @@ export class LobbyClient {
   private handleJoinResponse(msg: LobbyHostMessage & { type: 'joinResponse' }): void {
     if (msg.accepted) {
       this.state = 'joined';
-      this.mySeat = msg.seat;
+      this._mySeat = msg.seat;
       this.players = msg.players;
-      this._onJoinResult?.(true, undefined);
+      this._onJoinResult?.({ accepted: true, gameSettings: msg.gameSettings });
     } else {
       this.state = 'idle';
-      this._onJoinResult?.(false, msg.reason);
+      this._onJoinResult?.({ accepted: false, reason: msg.reason });
     }
   }
 
@@ -115,7 +129,7 @@ export class LobbyClient {
     this._onHostDiscovered = callback;
   }
 
-  onJoinResult(callback: (accepted: boolean, reason?: string) => void): void {
+  onJoinResult(callback: (result: JoinResult) => void): void {
     this._onJoinResult = callback;
   }
 
@@ -123,7 +137,7 @@ export class LobbyClient {
     this._onPlayersChanged = callback;
   }
 
-  onGameStart(callback: (blinds: { sb: number; bb: number }) => void): void {
+  onGameStart(callback: (config: GameStartConfig) => void): void {
     this._onGameStart = callback;
   }
 
