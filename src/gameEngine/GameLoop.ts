@@ -187,6 +187,11 @@ export class GameLoop {
     return player ? [...player.cards] : [];
   }
 
+  getMinRaiseSize(): number {
+    const size = this.bettingRound?.minRaise ?? 0;
+    return size > 0 ? size : this._blinds.bb;
+  }
+
   // --- Private methods ---
 
   private collectBetsFromRound(): void {
