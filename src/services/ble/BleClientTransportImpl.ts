@@ -58,8 +58,11 @@ export class BleClientTransportImpl implements BleClientTransport {
 
     // Listen for unexpected disconnection
     this.connectedDevice.onDisconnected(() => {
-      this.connectedDevice = null;
+      for (const sub of this.subscriptions) {
+        sub.remove();
+      }
       this.subscriptions = [];
+      this.connectedDevice = null;
     });
 
     // Subscribe to notifications for each characteristic
