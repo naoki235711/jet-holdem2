@@ -24,10 +24,8 @@ export function PlayerSlot({ seatNumber, player, isMe }: PlayerSlotProps) {
   return (
     <View style={[styles.slot, player.ready && styles.readySlot]}>
       <Text style={styles.seatLabel}>Seat {seatNumber}</Text>
-      <Text style={styles.nameText}>
-        {player.name}
-        {isMe && ' (あなた)'}
-      </Text>
+      <Text style={styles.nameText}>{player.name}</Text>
+      {isMe && <Text style={styles.meLabel}> (あなた)</Text>}
       <Text style={[styles.readyIcon, player.ready && styles.readyIconActive]}>
         {readyIcon}
       </Text>
@@ -59,6 +57,10 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     flex: 1,
+  },
+  meLabel: {
+    color: Colors.subText,
+    fontSize: 12,
   },
   emptyText: {
     color: Colors.subText,
