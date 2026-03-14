@@ -254,17 +254,9 @@ export class BleHostGameService implements GameService {
 
     const timeout = setTimeout(() => {
       this.frozenSeats.delete(seat);
-      // Auto-fold if game is active
+      // Auto-fold if game is active (force-fold regardless of turn order)
       if (this.gameLoop) {
-        const state = this.gameLoop.getState();
-        const player = state.players.find(p => p.seat === seat);
-        if (player && player.status === 'active') {
-          const result = this.gameLoop.handleAction(seat, { action: 'fold' });
-          if (!result.valid) {
-            // Not their turn yet — mark as folded for when turn arrives
-            // and broadcast the unfreezing
-          }
-        }
+        this.gameLoop.forceFold(seat);
       }
       // Always broadcast state update to reflect unfreezing
       this.broadcastState();

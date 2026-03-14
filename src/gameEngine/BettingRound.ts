@@ -116,6 +116,21 @@ export class BettingRound {
     }
   }
 
+  /**
+   * Force-fold a player regardless of whose turn it is.
+   * Used for timeout auto-fold on disconnected players.
+   */
+  forceFold(seat: number): void {
+    const player = this.players.find(p => p.seat === seat);
+    if (!player || player.status !== 'active') return;
+    player.status = 'folded';
+    this.actedSet.add(seat);
+    // If it was this player's turn, advance the turn
+    if (this._activeSeat === seat) {
+      this.advanceTurn();
+    }
+  }
+
   getBets(): BetEntry[] {
     return this.players
       .filter(p => p.bet > 0)
