@@ -197,6 +197,22 @@ describe('BettingRound', () => {
     });
   });
 
+  describe('minRaise getter', () => {
+    it('returns BB as initial minRaise for preflop', () => {
+      const players = makePlayers(3, 1000);
+      const round = BettingRound.createPreflop(players, 0, { sb: 5, bb: 10 });
+      expect(round.minRaise).toBe(10);
+    });
+
+    it('updates minRaise after a raise', () => {
+      const players = makePlayers(3, 1000);
+      const round = BettingRound.createPreflop(players, 0, { sb: 5, bb: 10 });
+      const seat = round.activePlayerSeat;
+      round.handleAction(seat, { action: 'raise', amount: 30 });
+      expect(round.minRaise).toBe(20);
+    });
+  });
+
   describe('edge cases', () => {
     it('unknown action returns error', () => {
       const players = makePlayers(2);
