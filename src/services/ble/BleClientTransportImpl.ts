@@ -80,15 +80,34 @@ export class BleClientTransportImpl implements BleClientTransport {
   }
 
   async disconnect(): Promise<void> {
-    throw new Error('Not implemented yet');
+    for (const sub of this.subscriptions) {
+      sub.remove();
+    }
+    this.subscriptions = [];
+    if (this.connectedDevice) {
+      await this.connectedDevice.cancelConnection();
+      this.connectedDevice = null;
+    }
   }
 
   onMessageReceived(callback: (characteristicId: string, data: Uint8Array) => void): void {
     this._onMessageReceived = callback;
   }
 
-  async sendToHost(_characteristicId: string, _data: Uint8Array): Promise<void> {
-    throw new Error('Not implemented yet');
+  async sendToHost(characteristicId: string, data: Uint8Array): Promise<void> {
+    if (!this.connectedDevice) {
+      throw new Error('Not connected to host');
+    }
+    const uuid = this.charMap.get(characteristicId);
+    if (!uuid) {
+      throw new Error(`Unknown characteristic: ${characteristicId}`);
+    }
+    const base64 = uint8ArrayToBase64(data);
+    await this.connectedDevice.writeCharacteristicWithResponseForService(
+      BLE_SERVICE_UUID,
+      uuid,
+      base64,
+    );
   }
 }
 

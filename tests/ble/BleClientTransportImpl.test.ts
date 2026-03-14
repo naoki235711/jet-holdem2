@@ -225,4 +225,81 @@ describe('BleClientTransportImpl', () => {
       expect(mockOnDisconnected).toHaveBeenCalledWith(expect.any(Function));
     });
   });
+
+  describe('sendToHost', () => {
+    const mockWriteCharacteristic = jest.fn().mockResolvedValue(undefined);
+    const mockMonitorCharacteristic = jest.fn((_sid, _cid, _cb) => ({
+      remove: jest.fn(),
+    }));
+
+    beforeEach(() => {
+      mockConnectToDevice.mockResolvedValue({
+        id: 'host-1',
+        discoverAllServicesAndCharacteristics: jest.fn().mockResolvedValue({
+          monitorCharacteristicForService: mockMonitorCharacteristic,
+          writeCharacteristicWithResponseForService: mockWriteCharacteristic,
+          onDisconnected: jest.fn(),
+          cancelConnection: mockCancelConnection,
+        }),
+      });
+    });
+
+    it('writes base64-encoded data to the correct characteristic UUID', async () => {
+      await transport.connectToHost('host-1');
+
+      const data = new Uint8Array([10, 20, 30]);
+      await transport.sendToHost('lobby', data);
+
+      expect(mockWriteCharacteristic).toHaveBeenCalledWith(
+        BLE_SERVICE_UUID,
+        LOBBY_CHARACTERISTIC_UUID,
+        expect.any(String), // base64
+      );
+    });
+
+    it('throws if not connected', async () => {
+      await expect(
+        transport.sendToHost('lobby', new Uint8Array([1])),
+      ).rejects.toThrow();
+    });
+
+    it('throws for unknown logical name', async () => {
+      await transport.connectToHost('host-1');
+
+      await expect(
+        transport.sendToHost('nonexistent', new Uint8Array([1])),
+      ).rejects.toThrow('Unknown characteristic');
+    });
+  });
+
+  describe('disconnect', () => {
+    const mockRemove = jest.fn();
+    const mockMonitorCharacteristic = jest.fn((_sid, _cid, _cb) => ({
+      remove: mockRemove,
+    }));
+
+    beforeEach(() => {
+      // cancelConnection must be on the discovered device (connectedDevice)
+      mockConnectToDevice.mockResolvedValue({
+        id: 'host-1',
+        discoverAllServicesAndCharacteristics: jest.fn().mockResolvedValue({
+          monitorCharacteristicForService: mockMonitorCharacteristic,
+          onDisconnected: jest.fn(),
+          cancelConnection: mockCancelConnection,
+        }),
+      });
+    });
+
+    it('cancels connection and removes subscriptions', async () => {
+      await transport.connectToHost('host-1');
+      await transport.disconnect();
+
+      expect(mockCancelConnection).toHaveBeenCalled();
+      expect(mockRemove).toHaveBeenCalled();
+    });
+
+    it('is safe to call when not connected', async () => {
+      await expect(transport.disconnect()).resolves.not.toThrow();
+    });
+  });
 });
