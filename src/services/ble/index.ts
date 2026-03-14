@@ -20,4 +20,6 @@ export type {
 export { ChunkManager } from './ChunkManager';
 export { LobbyHost } from './LobbyHost';
 export { LobbyClient } from './LobbyClient';
+export { BleClientTransportImpl } from './BleClientTransportImpl';
+export { BleHostTransportImpl } from './BleHostTransportImpl';
 // MockBleTransport classes are test-only — import directly from './MockBleTransport' in tests
