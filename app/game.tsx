@@ -1,7 +1,7 @@
 // app/game.tsx
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { GameProvider } from '../src/contexts/GameContext';
 import { LocalGameService } from '../src/services/LocalGameService';
@@ -58,6 +58,40 @@ function TableLayout() {
   );
 }
 
+function DebugInfoBar() {
+  const { state, mode } = useGame();
+  if (mode !== 'debug' || !state) return null;
+
+  const potBreakdown = state.pots.map((p, i) =>
+    `Pot${i}: ${p.amount} [${p.eligible.join(',')}]`
+  ).join(' | ');
+
+  const statuses = state.players.map(p =>
+    `${p.name}: ${p.status} (${p.chips})`
+  ).join(' | ');
+
+  return (
+    <View style={debugStyles.bar}>
+      <Text style={debugStyles.text}>Phase: {state.phase} | Dealer: {state.dealer} | Bet: {state.currentBet}</Text>
+      <Text style={debugStyles.text}>{potBreakdown}</Text>
+      <Text style={debugStyles.text}>{statuses}</Text>
+    </View>
+  );
+}
+
+const debugStyles = StyleSheet.create({
+  bar: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 4,
+    paddingHorizontal: 8,
+  },
+  text: {
+    color: Colors.subText,
+    fontSize: 10,
+    fontFamily: 'monospace',
+  },
+});
+
 function GameView() {
   const { state, mode, viewingSeat } = useGame();
   const [showPassScreen, setShowPassScreen] = useState(false);
@@ -97,6 +131,7 @@ function GameView() {
 
   return (
     <View style={styles.screen}>
+      <DebugInfoBar />
       <TableLayout />
       <ActionButtons />
       <ResultOverlay />
