@@ -51,11 +51,11 @@ tests/ble/
 
 ```
 UI (LobbyScreen)
-    ↕ コールバック
+    ↕ コールバック (LobbyPlayer[], blinds等)
 LobbyHost / LobbyClient (ステートマシン)
-    ↕ encode/decode
-ChunkManager (チャンク分割・再組立)
-    ↕ send/receive
+    ↕ string (JSON文字列)
+ChunkManager (チャンク分割・再組立、JSON↔Uint8Array変換)
+    ↕ Uint8Array (チャンクデータ)
 BleTransport (抽象化インターフェース)
     ↕
 MockBleTransport (テスト) / BleTransportImpl (将来)
