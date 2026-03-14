@@ -1,5 +1,13 @@
 export type { BleHostTransport, BleClientTransport } from './BleTransport';
 export {
+  BLE_SERVICE_UUID,
+  LOBBY_CHARACTERISTIC_UUID,
+  GAME_STATE_CHARACTERISTIC_UUID,
+  PRIVATE_HAND_CHARACTERISTIC_UUID,
+  PLAYER_ACTION_CHARACTERISTIC_UUID,
+  createCharacteristicMap,
+} from './bleConstants';
+export {
   PROTOCOL_VERSION,
   validateClientMessage,
   validateHostMessage,
