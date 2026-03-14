@@ -1,0 +1,122 @@
+import {
+  validateClientMessage,
+  validateHostMessage,
+  LobbyClientMessage,
+  LobbyHostMessage,
+  LobbyPlayer,
+  PROTOCOL_VERSION,
+} from '../../src/services/ble/LobbyProtocol';
+
+describe('LobbyProtocol', () => {
+  describe('validateClientMessage', () => {
+    it('accepts a valid join message', () => {
+      const msg = { type: 'join', protocolVersion: 1, playerName: 'Alice' };
+      const result = validateClientMessage(msg);
+      expect(result).toEqual({ type: 'join', protocolVersion: 1, playerName: 'Alice' });
+    });
+
+    it('accepts a valid ready message', () => {
+      const msg = { type: 'ready' };
+      const result = validateClientMessage(msg);
+      expect(result).toEqual({ type: 'ready' });
+    });
+
+    it('rejects null input', () => {
+      expect(validateClientMessage(null)).toBeNull();
+    });
+
+    it('rejects non-object input', () => {
+      expect(validateClientMessage('hello')).toBeNull();
+    });
+
+    it('rejects unknown message type', () => {
+      expect(validateClientMessage({ type: 'unknown' })).toBeNull();
+    });
+
+    it('rejects join with wrong protocolVersion', () => {
+      const msg = { type: 'join', protocolVersion: 99, playerName: 'Alice' };
+      expect(validateClientMessage(msg)).toBeNull();
+    });
+
+    it('rejects join with missing playerName', () => {
+      const msg = { type: 'join', protocolVersion: 1 };
+      expect(validateClientMessage(msg)).toBeNull();
+    });
+
+    it('rejects join with empty playerName', () => {
+      const msg = { type: 'join', protocolVersion: 1, playerName: '' };
+      expect(validateClientMessage(msg)).toBeNull();
+    });
+  });
+
+  describe('validateHostMessage', () => {
+    const players: LobbyPlayer[] = [
+      { seat: 0, name: 'Host', ready: true },
+      { seat: 1, name: 'Alice', ready: false },
+    ];
+
+    it('accepts a valid joinResponse (accepted)', () => {
+      const msg = { type: 'joinResponse', accepted: true, seat: 1, players };
+      expect(validateHostMessage(msg)).toEqual(msg);
+    });
+
+    it('accepts a valid joinResponse (rejected)', () => {
+      const msg = { type: 'joinResponse', accepted: false, reason: 'Room full' };
+      expect(validateHostMessage(msg)).toEqual(msg);
+    });
+
+    it('accepts a valid playerUpdate', () => {
+      const msg = { type: 'playerUpdate', players };
+      expect(validateHostMessage(msg)).toEqual(msg);
+    });
+
+    it('accepts a valid gameStart', () => {
+      const msg = { type: 'gameStart', blinds: { sb: 5, bb: 10 } };
+      expect(validateHostMessage(msg)).toEqual(msg);
+    });
+
+    it('accepts a valid lobbyClosed', () => {
+      const msg = { type: 'lobbyClosed', reason: 'Host left' };
+      expect(validateHostMessage(msg)).toEqual(msg);
+    });
+
+    it('rejects null input', () => {
+      expect(validateHostMessage(null)).toBeNull();
+    });
+
+    it('rejects unknown type', () => {
+      expect(validateHostMessage({ type: 'unknown' })).toBeNull();
+    });
+
+    it('rejects joinResponse accepted=true without seat', () => {
+      const msg = { type: 'joinResponse', accepted: true, players };
+      expect(validateHostMessage(msg)).toBeNull();
+    });
+
+    it('rejects joinResponse accepted=true without players', () => {
+      const msg = { type: 'joinResponse', accepted: true, seat: 1 };
+      expect(validateHostMessage(msg)).toBeNull();
+    });
+
+    it('rejects joinResponse accepted=false without reason', () => {
+      const msg = { type: 'joinResponse', accepted: false };
+      expect(validateHostMessage(msg)).toBeNull();
+    });
+
+    it('rejects playerUpdate without players array', () => {
+      expect(validateHostMessage({ type: 'playerUpdate' })).toBeNull();
+    });
+
+    it('rejects gameStart without blinds', () => {
+      expect(validateHostMessage({ type: 'gameStart' })).toBeNull();
+    });
+
+    it('rejects gameStart with incomplete blinds', () => {
+      expect(validateHostMessage({ type: 'gameStart', blinds: { sb: 5 } })).toBeNull();
+    });
+
+    it('rejects lobbyClosed without reason', () => {
+      expect(validateHostMessage({ type: 'lobbyClosed' })).toBeNull();
+    });
+  });
+});
