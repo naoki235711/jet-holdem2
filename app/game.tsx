@@ -9,6 +9,7 @@ import { useGame } from '../src/hooks/useGame';
 import { PlayerSeat } from '../src/components/table/PlayerSeat';
 import { CommunityCards } from '../src/components/table/CommunityCards';
 import { PotDisplay } from '../src/components/table/PotDisplay';
+import { ActionButtons } from '../src/components/actions/ActionButtons';
 import { Colors } from '../src/theme/colors';
 
 function TableLayout() {
@@ -80,7 +81,7 @@ export default function GameScreen() {
     <GameProvider service={service} mode={mode}>
       <View style={styles.screen}>
         <TableLayout />
-        {/* Action buttons will be added in Chunk 3 */}
+        <ActionButtons />
       </View>
     </GameProvider>
   );
