@@ -31,6 +31,8 @@ export function GameProvider({ children, service, mode }: GameProviderProps) {
   const serviceRef = useRef(service);
   serviceRef.current = service;
 
+  const prevPhaseRef = useRef<string | null>(null);
+
   useEffect(() => {
     // Sync initial state in case service already has state before subscription
     try {
@@ -41,9 +43,20 @@ export function GameProvider({ children, service, mode }: GameProviderProps) {
 
     const unsub = service.subscribe((newState) => {
       setState(newState);
+
+      // BLE client: detect showdown from host's stateUpdate.
+      // showdownResult message arrives before the stateUpdate (same characteristic,
+      // sent first in resolveShowdown), so lastShowdownResult is already set.
+      if (mode === 'ble-client' && prevPhaseRef.current !== 'showdown' && newState.phase === 'showdown') {
+        const sdResult = serviceRef.current.resolveShowdown();
+        if (sdResult.winners.length > 0) {
+          setShowdownResult(sdResult);
+        }
+      }
+      prevPhaseRef.current = newState.phase;
     });
     return unsub;
-  }, [service]);
+  }, [service, mode]);
 
   // Auto-update viewingSeat in hotseat mode
   useEffect(() => {
@@ -56,14 +69,16 @@ export function GameProvider({ children, service, mode }: GameProviderProps) {
     const result = serviceRef.current.handleAction(seat, action);
     if (!result.valid) return result;
 
-    // Auto-resolve showdown
-    const currentState = serviceRef.current.getState();
-    if (currentState.phase === 'showdown') {
-      const sdResult = serviceRef.current.resolveShowdown();
-      setShowdownResult(sdResult);
+    // Auto-resolve showdown (skip for BLE client — showdown arrives via subscribe)
+    if (mode !== 'ble-client') {
+      const currentState = serviceRef.current.getState();
+      if (currentState.phase === 'showdown') {
+        const sdResult = serviceRef.current.resolveShowdown();
+        setShowdownResult(sdResult);
+      }
     }
     return result;
-  }, []);
+  }, [mode]);
 
   const getActionInfo = useCallback((seat: number): ActionInfo => {
     return serviceRef.current.getActionInfo(seat);
