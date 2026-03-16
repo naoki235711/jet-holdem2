@@ -8,7 +8,7 @@ import { PlayingCard } from '../common/PlayingCard';
 import { Colors } from '../../theme/colors';
 
 export function ResultOverlay() {
-  const { state, showdownResult, nextRound } = useGame();
+  const { state, showdownResult, nextRound, mode, rematch } = useGame();
   const router = useRouter();
 
   if (!state) return null;
@@ -94,13 +94,26 @@ export function ResultOverlay() {
           )}
 
           {isGameOver ? (
-            <TouchableOpacity
-              testID="back-to-lobby-btn"
-              style={styles.actionBtn}
-              onPress={() => router.replace('/')}
-            >
-              <Text style={styles.actionBtnText}>ロビーに戻る</Text>
-            </TouchableOpacity>
+            <View style={styles.gameOverButtons}>
+              {mode !== 'ble-client' ? (
+                <TouchableOpacity
+                  testID="rematch-btn"
+                  style={styles.actionBtn}
+                  onPress={rematch}
+                >
+                  <Text style={styles.actionBtnText}>再戦</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.waitingText}>ホストの操作を待っています...</Text>
+              )}
+              <TouchableOpacity
+                testID="back-to-lobby-btn"
+                style={styles.lobbyBtn}
+                onPress={() => router.replace('/')}
+              >
+                <Text style={styles.lobbyBtnText}>ロビーに戻る</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <TouchableOpacity testID="next-round-btn" style={styles.actionBtn} onPress={nextRound}>
               <Text style={styles.actionBtnText}>次のラウンドへ</Text>
@@ -156,4 +169,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   actionBtnText: { color: Colors.text, fontWeight: 'bold', fontSize: 16 },
+  gameOverButtons: { alignItems: 'center', gap: 8, marginTop: 12 },
+  waitingText: { color: Colors.subText, fontSize: 14, fontStyle: 'italic', marginTop: 12 },
+  lobbyBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+  },
+  lobbyBtnText: { color: Colors.subText, fontSize: 14 },
 });
