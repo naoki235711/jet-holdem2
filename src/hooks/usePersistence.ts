@@ -32,7 +32,8 @@ export function subscribePersistence(
     if (currentPhase === 'roundEnd' && prevPhase !== 'roundEnd') {
       roundCount++;
       for (const player of state.players) {
-        repository.savePlayerChips(player.name, player.chips);
+        // Intentionally silent: persistence is best-effort, game must not crash on save failure
+        repository.savePlayerChips(player.name, player.chips).catch(() => {});
       }
     }
 
@@ -50,7 +51,8 @@ export function subscribePersistence(
           finalChips: p.chips,
         })),
       };
-      repository.saveGameRecord(record);
+      // Intentionally silent: persistence is best-effort, game must not crash on save failure
+      repository.saveGameRecord(record).catch(() => {});
     }
 
     prevPhase = currentPhase;
