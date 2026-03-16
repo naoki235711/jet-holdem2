@@ -85,16 +85,27 @@ interface GameProviderProps {
 
 ### rematch() 実装
 
+`blinds` はオブジェクトリテラルで props から渡されるため、毎レンダーで新しい参照が生成される。`useCallback` の依存配列に含めると不要な再生成が発生するため、既存の `serviceRef` パターンに倣い refs を使用する:
+
 ```typescript
+// GameProvider 内
+const playerNamesRef = useRef(playerNames);
+playerNamesRef.current = playerNames;
+const blindsRef = useRef(blinds);
+blindsRef.current = blinds;
+const initialChipsRef = useRef(initialChips);
+initialChipsRef.current = initialChips;
+
 const rematch = useCallback(() => {
-  if (!playerNames || !blinds || !initialChips) return;
-  serviceRef.current.startGame(playerNames, blinds, initialChips);
+  const names = playerNamesRef.current;
+  const bl = blindsRef.current;
+  const chips = initialChipsRef.current;
+  if (!names || !bl || !chips) return;
+  serviceRef.current.startGame(names, bl, chips);
   serviceRef.current.startRound();
   setShowdownResult(null);
-}, [playerNames, blinds, initialChips]);
+}, []);  // 依存配列は空 — refs経由で最新値にアクセス
 ```
-
-**Note:** `playerNames`, `blinds`, `initialChips` は `game.tsx` から必ず渡されるため、nullチェックは型安全性のガードのみ。実行時にnullになることはない。
 
 ### ディーラー位置
 
@@ -120,7 +131,7 @@ if (mode === 'ble-client' && newState.phase === 'preflop' && prevPhaseRef.curren
 | モード | rematch() の動作 |
 |---|---|
 | hotseat / debug | `LocalGameService.startGame()` → 新しいGameLoop生成 → `startRound()` |
-| ble-host | `BleHostGameService.startGame()` → 新しいGameLoop生成 + rematchメッセージ送信 → `startRound()` → broadcastState + sendPrivateHands |
+| ble-host | `BleHostGameService.startGame()` → 新しいGameLoop生成 + rematchメッセージ送信（`notifyListeners()` は呼ばない — `waiting` phase の中間通知は不要） → `startRound()` → broadcastState + sendPrivateHands + notifyListeners |
 | ble-client | `rematch()` は呼ばれない。ホストからのrematchメッセージ + stateUpdateで自動同期 |
 
 ---
