@@ -42,6 +42,10 @@ export type GameHostMessage =
   | {
       type: 'roundEnd';
       seq: number;
+    }
+  | {
+      type: 'rematch';
+      seq: number;
     };
 
 // --- Host → Client (privateHand characteristic) ---
@@ -184,6 +188,9 @@ export function validateGameHostMessage(data: unknown): GameHostMessage | null {
     case 'roundEnd':
       if (typeof data.seq !== 'number') return null;
       return { type: 'roundEnd', seq: data.seq };
+    case 'rematch':
+      if (typeof data.seq !== 'number') return null;
+      return { type: 'rematch', seq: data.seq };
     default:
       return null;
   }

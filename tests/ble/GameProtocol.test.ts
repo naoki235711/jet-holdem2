@@ -90,6 +90,21 @@ describe('GameProtocol', () => {
     it('rejects roundEnd missing seq', () => {
       expect(validateGameHostMessage({ type: 'roundEnd' })).toBeNull();
     });
+
+    describe('rematch', () => {
+      it('accepts valid rematch message', () => {
+        expect(validateGameHostMessage({ type: 'rematch', seq: 5 }))
+          .toEqual({ type: 'rematch', seq: 5 });
+      });
+
+      it('rejects rematch without seq', () => {
+        expect(validateGameHostMessage({ type: 'rematch' })).toBeNull();
+      });
+
+      it('rejects rematch with non-number seq', () => {
+        expect(validateGameHostMessage({ type: 'rematch', seq: 'abc' })).toBeNull();
+      });
+    });
   });
 
   describe('validatePrivateHandMessage', () => {
