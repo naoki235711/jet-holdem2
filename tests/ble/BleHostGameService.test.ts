@@ -209,6 +209,27 @@ describe('BleHostGameService', () => {
     });
   });
 
+  describe('rematch', () => {
+    it('does not send rematch message on first startGame', () => {
+      service.startGame(['Host', 'Alice', 'Bob'], blinds, 1000);
+      const broadcasts = decodeBroadcasts(transport);
+      const rematchMsgs = broadcasts.filter((m: any) => m.type === 'rematch');
+      expect(rematchMsgs).toHaveLength(0);
+    });
+
+    it('sends rematch message on second startGame', () => {
+      service.startGame(['Host', 'Alice', 'Bob'], blinds, 1000);
+      service.startRound();
+      transport.sentMessages.length = 0; // clear
+
+      service.startGame(['Host', 'Alice', 'Bob'], blinds, 1000);
+      const broadcasts = decodeBroadcasts(transport);
+      const rematchMsgs = broadcasts.filter((m: any) => m.type === 'rematch');
+      expect(rematchMsgs).toHaveLength(1);
+      expect(rematchMsgs[0]).toEqual({ type: 'rematch', seq: 0 });
+    });
+  });
+
   describe('disconnection & freeze', () => {
     beforeEach(() => {
       jest.useFakeTimers();
