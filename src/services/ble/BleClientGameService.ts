@@ -56,7 +56,7 @@ export class BleClientGameService implements GameService {
     };
   }
 
-  startGame(_playerNames: string[], _blinds: Blinds, _initialChips: number): void {
+  startGame(_playerNames: string[], _blinds: Blinds, _initialChips: number, _savedChips?: Record<string, number>): void {
     // no-op: host controls game lifecycle
   }
 
@@ -152,6 +152,12 @@ export class BleClientGameService implements GameService {
 
       case 'roundEnd':
         // roundEnd is informational; state already updated via stateUpdate
+        break;
+
+      case 'rematch':
+        this.lastShowdownResult = null;
+        this.myCards = [];
+        this.notifyListeners();
         break;
     }
   }
