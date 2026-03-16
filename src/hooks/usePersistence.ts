@@ -24,6 +24,7 @@ export function subscribePersistence(
 
   let prevPhase: Phase | null = null;
   let roundCount = 0;
+  let sawGameOver = false;
 
   const unsub = service.subscribe((state: GameState) => {
     const currentPhase = state.phase;
@@ -39,6 +40,7 @@ export function subscribePersistence(
 
     // Game over: save game record
     if (currentPhase === 'gameOver' && prevPhase !== 'gameOver') {
+      sawGameOver = true;
       const record: GameRecord = {
         date: new Date().toISOString(),
         mode: config.mode,
@@ -53,6 +55,12 @@ export function subscribePersistence(
       };
       // Intentionally silent: persistence is best-effort, game must not crash on save failure
       repository.saveGameRecord(record).catch(() => {});
+    }
+
+    // Reset roundCount on rematch (new game after gameOver)
+    if (sawGameOver && currentPhase === 'preflop') {
+      roundCount = 0;
+      sawGameOver = false;
     }
 
     prevPhase = currentPhase;
