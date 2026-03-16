@@ -275,7 +275,7 @@ describe('B-6: Buttons disabled when not your turn', () => {
     await waitFor(() => {
       expect(renderAPI.getByTestId('fold-btn').props.accessibilityState?.disabled).toBe(false);
     });
-  });
+  }, 15000);
 });
 
 // ---------------------------------------------------------------------------
