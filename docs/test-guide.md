@@ -23,6 +23,10 @@ npx jest ActionButtons.test.tsx
 
 # 特定ディレクトリのみ
 npx jest tests/gameEngine/
+npx jest tests/services/
+npx jest tests/ble/
+npx jest tests/persistence/
+npx jest tests/integration/
 npx jest tests/ui/components/
 npx jest tests/ui/integration/
 
@@ -51,27 +55,62 @@ Jest プロジェクト: `engine` / 環境: Node.js / フレームワーク: ts-
 
 | ファイル | テスト対象 |
 |---------|-----------|
-| `tests/services/LocalGameService.test.ts` | LocalGameService（UIとエンジンの橋渡し） |
+| `tests/services/LocalGameService.test.ts` | LocalGameService（UIとエンジンの橋渡し、エラーハンドリング） |
 
-### 3. UIコンポーネント Unit テスト（11ファイル）
+### 3. BLE Unit テスト（11ファイル）
+
+Jest プロジェクト: `engine` / 環境: Node.js
+
+| ファイル | テスト対象 |
+|---------|-----------|
+| `tests/ble/bleConstants.test.ts` | BLE定数 |
+| `tests/ble/ChunkManager.test.ts` | メッセージチャンク分割・結合 |
+| `tests/ble/MockBleTransport.test.ts` | モックBLEトランスポート |
+| `tests/ble/LobbyProtocol.test.ts` | ロビープロトコルメッセージ検証 |
+| `tests/ble/GameProtocol.test.ts` | ゲームプロトコルメッセージ検証 |
+| `tests/ble/LobbyHost.test.ts` | ロビーホスト（プレイヤー管理） |
+| `tests/ble/LobbyClient.test.ts` | ロビークライアント（参加・準備） |
+| `tests/ble/BleHostGameService.test.ts` | BLEホストゲームサービス |
+| `tests/ble/BleClientGameService.test.ts` | BLEクライアントゲームサービス |
+| `tests/ble/BleHostTransportImpl.test.ts` | BLEホストトランスポート実装 |
+| `tests/ble/BleClientTransportImpl.test.ts` | BLEクライアントトランスポート実装 |
+
+### 4. Persistence Unit テスト（3ファイル）
+
+Jest プロジェクト: `engine` / 環境: Node.js
+
+| ファイル | テスト対象 |
+|---------|-----------|
+| `tests/persistence/InMemoryGameRepository.test.ts` | インメモリリポジトリ |
+| `tests/persistence/AsyncStorageGameRepository.test.ts` | AsyncStorageリポジトリ |
+| `tests/persistence/usePersistence.test.ts` | subscribePersistence（モックService経由） |
+
+### 5. UIコンポーネント Unit テスト（17ファイル）
 
 Jest プロジェクト: `ui` / 環境: React Native / フレームワーク: @testing-library/react-native
 
 | ファイル | テスト対象 |
 |---------|-----------|
 | `tests/ui/components/ActionButtons.test.tsx` | アクションボタン（Fold/Call/Raise） |
+| `tests/ui/components/BleHostLobby.test.tsx` | BLEホストロビー画面 |
+| `tests/ui/components/BleJoinLobby.test.tsx` | BLE参加ロビー画面 |
 | `tests/ui/components/ChipAmount.test.tsx` | チップ表示 |
 | `tests/ui/components/CommunityCards.test.tsx` | コミュニティカード表示 |
+| `tests/ui/components/HostList.test.tsx` | ホスト一覧 |
+| `tests/ui/components/HostSetupForm.test.tsx` | ホスト設定フォーム |
+| `tests/ui/components/JoinSetupForm.test.tsx` | 参加設定フォーム |
+| `tests/ui/components/LobbyModeSelector.test.tsx` | ロビーモード選択 |
 | `tests/ui/components/LobbyView.test.tsx` | ロビー画面 |
 | `tests/ui/components/PassDeviceScreen.test.tsx` | ホットシートモードの端末パス画面 |
 | `tests/ui/components/PlayerSeat.test.tsx` | プレイヤー座席表示 |
+| `tests/ui/components/PlayerSlot.test.tsx` | プレイヤースロット |
 | `tests/ui/components/PlayingCard.test.tsx` | トランプカード表示 |
 | `tests/ui/components/PotDisplay.test.tsx` | ポット表示 |
 | `tests/ui/components/RaiseSlider.test.tsx` | レイズスライダー |
 | `tests/ui/components/ResultOverlay.test.tsx` | 結果オーバーレイ |
 | `tests/ui/contexts/GameContext.test.tsx` | GameContext（状態管理） |
 
-### 4. UI Integration テスト（5ファイル）
+### 6. UI Integration テスト（5ファイル）
 
 実際の `LocalGameService` + `GameLoop` を使用してUI↔エンジンの結合をテスト
 
@@ -83,7 +122,14 @@ Jest プロジェクト: `ui` / 環境: React Native / フレームワーク: @t
 | `tests/ui/integration/resultAndNextRound.integration.test.tsx` | 結果表示・次ラウンドへの遷移 |
 | `tests/ui/integration/edgeCases.integration.test.tsx` | エッジケース（サイドポット、オールインなど） |
 
-### 5. E2E テスト - Playwright（4ファイル）
+### 7. BLE Integration テスト（2ファイル）
+
+| ファイル | テスト対象 |
+|---------|-----------|
+| `tests/ble/integration/LobbyFlow.test.ts` | ロビーフロー（join/ready/disconnect） |
+| `tests/ble/integration/BleGameFlow.test.ts` | BLEゲームフロー（ラウンド進行、切断処理） |
+
+### 8. E2E テスト - Playwright（4ファイル）
 
 ブラウザ上でExpo Webサーバーに接続してテスト / Base URL: `http://localhost:8081`
 
@@ -102,12 +148,16 @@ Jest プロジェクト: `ui` / 環境: React Native / フレームワーク: @t
 tests/
 ├── gameEngine/          # エンジンUnitテスト（6ファイル）
 ├── services/            # サービスUnitテスト（1ファイル）
+├── ble/                 # BLEテスト（11ファイル）
+│   └── integration/     # BLE統合テスト（2ファイル）
+├── persistence/         # Persistenceテスト（3ファイル）
+├── integration/         # クロスレイヤー統合テスト（予定）
 └── ui/
     ├── setup.js         # React Native テストセットアップ
     ├── helpers/         # テストヘルパー（renderWithGame等）
-    ├── components/      # コンポーネントUnitテスト（11ファイル）
+    ├── components/      # コンポーネントUnitテスト（17ファイル）
     ├── contexts/        # コンテキストテスト（1ファイル）
-    └── integration/     # 統合テスト（5ファイル）
+    └── integration/     # UI統合テスト（5ファイル）
         └── helpers/     # 統合テストヘルパー
 
 e2e/
@@ -144,7 +194,10 @@ npx expo start --web --port 8081
 |---------|------|-----------|
 | ゲームエンジン | Unit | 6 |
 | サービス | Unit | 1 |
-| UIコンポーネント | Unit | 11 |
+| BLE | Unit | 11 |
+| Persistence | Unit | 3 |
+| UIコンポーネント | Unit | 17 |
 | UI統合 | Integration | 5 |
+| BLE統合 | Integration | 2 |
 | ブラウザE2E | Playwright | 4 |
-| **合計** | — | **27** |
+| **合計** | — | **49** |

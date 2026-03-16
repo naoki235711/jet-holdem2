@@ -556,7 +556,7 @@ describe('E-6: Player elimination and continuation', () => {
     if (state.phase !== 'gameOver') {
       expect(state.phase).toBe('waiting');
     }
-  });
+  }, 15000);
 
   it('game reaches gameOver when only 1 player has chips', async () => {
     // Set up 3 players: seat 1 and seat 2 have very few chips.

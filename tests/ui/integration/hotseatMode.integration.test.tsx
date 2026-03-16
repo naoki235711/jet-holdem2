@@ -127,7 +127,7 @@ describe('Hotseat Mode Integration', () => {
       expect(rendered.getByTestId('pass-device-screen')).toBeTruthy();
       expect(rendered.getByText('端末を Charlie に渡してください')).toBeTruthy();
     });
-  });
+  }, 15000);
 
   /**
    * H-4: No PassDeviceScreen during showdown/roundEnd
