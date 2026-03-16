@@ -159,6 +159,11 @@ export default function GameScreen() {
   const initialChips = Number(params.initialChips ?? '1000');
   const blinds = { sb: Number(params.sb ?? '5'), bb: Number(params.bb ?? '10') };
 
+  const playerNames = React.useMemo<string[]>(() => {
+    const parsed: string[] = JSON.parse(params.playerNames ?? '[]');
+    return parsed.length > 0 ? parsed : ['P0', 'P1', 'P2'];
+  }, [params.playerNames]);
+
   const [service] = React.useState<GameService>(() => {
     if (mode === 'ble-host') {
       const transport = getHostTransport()!;
@@ -166,7 +171,6 @@ export default function GameScreen() {
       const seatMap = new Map<string, number>(
         Object.entries(parsed).map(([k, v]) => [k, Number(v)]),
       );
-      const playerNames: string[] = JSON.parse(params.playerNames ?? '[]');
       const svc = new BleHostGameService(transport, seatMap);
       svc.startGame(playerNames, blinds, initialChips);
       svc.startRound();
@@ -179,7 +183,6 @@ export default function GameScreen() {
     }
 
     // Local modes (hotseat / debug)
-    const playerNames: string[] = JSON.parse(params.playerNames ?? '["P0","P1","P2"]');
     const playerChipsMap: Record<string, number> | undefined = params.playerChips
       ? JSON.parse(params.playerChips)
       : undefined;
@@ -208,6 +211,7 @@ export default function GameScreen() {
       repository={repo}
       initialChips={initialChips}
       blinds={blinds}
+      playerNames={playerNames}
     >
       <GameView />
     </GameProvider>
