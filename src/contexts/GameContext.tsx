@@ -5,6 +5,7 @@ import { GameService, ActionInfo } from '../services/GameService';
 import { ActionResult } from '../gameEngine';
 import { GameRepository } from '../services/persistence/GameRepository';
 import { usePersistence, PersistenceConfig } from '../hooks/usePersistence';
+import { PreActionType } from '../components/actions/types';
 
 export interface GameContextValue {
   state: GameState | null;
@@ -17,6 +18,8 @@ export interface GameContextValue {
   nextRound: () => void;
   setViewingSeat: (seat: number) => void;
   rematch: () => void;
+  preAction: PreActionType;
+  setPreAction: (action: PreActionType) => void;
 }
 
 export const GameContext = createContext<GameContextValue | null>(null);
@@ -44,6 +47,28 @@ export function GameProvider({ children, service, mode, repository, initialChips
   const initialChipsRef = useRef(initialChips);
   initialChipsRef.current = initialChips;
 
+  // Pre-action state (BLE modes only)
+  const [preAction, setPreActionState] = useState<PreActionType>(null);
+  const preActionRef = useRef<PreActionType>(null);
+  const prevCurrentBetRef = useRef<number>(0);
+
+  // mySeat: fixed seat for BLE modes. For hotseat/debug, pre-actions are disabled.
+  // ble-host is always seat 0; ble-client gets viewingSeat (set from route param).
+  const mySeatRef = useRef<number | null>(
+    mode === 'ble-host' || mode === 'ble-client' ? viewingSeat : null,
+  );
+
+  const setPreAction = useCallback((pa: PreActionType) => {
+    setPreActionState(pa);
+    preActionRef.current = pa;
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'ble-host' || mode === 'ble-client') {
+      mySeatRef.current = viewingSeat;
+    }
+  }, [viewingSeat, mode]);
+
   // Persistence hook (always called unconditionally; repository=null disables)
   const persistMode = mode === 'debug' ? 'hotseat' : mode;
   usePersistence(
@@ -58,6 +83,15 @@ export function GameProvider({ children, service, mode, repository, initialChips
 
   const prevPhaseRef = useRef<string | null>(null);
 
+  const autoResolveShowdown = useCallback(() => {
+    if (mode === 'ble-client') return;
+    const currentState = serviceRef.current.getState();
+    if (currentState.phase === 'showdown') {
+      const sdResult = serviceRef.current.resolveShowdown();
+      setShowdownResult(sdResult);
+    }
+  }, [mode]);
+
   useEffect(() => {
     // Sync initial state in case service already has state before subscription
     try {
@@ -68,6 +102,28 @@ export function GameProvider({ children, service, mode, repository, initialChips
 
     const unsub = service.subscribe((newState) => {
       setState(newState);
+
+      // Pre-action: reset Call when currentBet changes
+      if (preActionRef.current === 'call' && newState.currentBet !== prevCurrentBetRef.current) {
+        setPreAction(null);
+      }
+      prevCurrentBetRef.current = newState.currentBet;
+
+      // Pre-action: auto-execute when it becomes my turn
+      const mySeat = mySeatRef.current;
+      if (mySeat !== null && newState.activePlayer === mySeat && preActionRef.current) {
+        const pa = preActionRef.current;
+        setPreAction(null);
+
+        const info = serviceRef.current.getActionInfo(mySeat);
+        if (pa === 'checkFold') {
+          serviceRef.current.handleAction(mySeat, info.canCheck ? { action: 'check' } : { action: 'fold' });
+        } else if (pa === 'call' || pa === 'callAny') {
+          serviceRef.current.handleAction(mySeat, info.canCheck ? { action: 'check' } : { action: 'call' });
+        }
+
+        autoResolveShowdown();
+      }
 
       // BLE client: detect showdown from host's stateUpdate.
       // showdownResult message arrives before the stateUpdate (same characteristic,
@@ -85,7 +141,7 @@ export function GameProvider({ children, service, mode, repository, initialChips
       prevPhaseRef.current = newState.phase;
     });
     return unsub;
-  }, [service, mode]);
+  }, [service, mode, setPreAction, autoResolveShowdown]);
 
   // Auto-update viewingSeat in hotseat mode
   useEffect(() => {
@@ -97,17 +153,9 @@ export function GameProvider({ children, service, mode, repository, initialChips
   const doAction = useCallback((seat: number, action: PlayerAction): ActionResult => {
     const result = serviceRef.current.handleAction(seat, action);
     if (!result.valid) return result;
-
-    // Auto-resolve showdown (skip for BLE client — showdown arrives via subscribe)
-    if (mode !== 'ble-client') {
-      const currentState = serviceRef.current.getState();
-      if (currentState.phase === 'showdown') {
-        const sdResult = serviceRef.current.resolveShowdown();
-        setShowdownResult(sdResult);
-      }
-    }
+    autoResolveShowdown();
     return result;
-  }, [mode]);
+  }, [autoResolveShowdown]);
 
   const getActionInfo = useCallback((seat: number): ActionInfo => {
     return serviceRef.current.getActionInfo(seat);
@@ -143,6 +191,8 @@ export function GameProvider({ children, service, mode, repository, initialChips
     nextRound,
     setViewingSeat,
     rematch,
+    preAction,
+    setPreAction,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

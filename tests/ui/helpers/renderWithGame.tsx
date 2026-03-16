@@ -57,6 +57,8 @@ export function renderWithGame(
     nextRound: jest.fn(),
     rematch: jest.fn(),
     setViewingSeat: jest.fn(),
+    preAction: null,
+    setPreAction: jest.fn(),
     ...contextOverrides,
   };
 

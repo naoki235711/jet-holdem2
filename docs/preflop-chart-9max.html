@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>9-Max Preflop RFI Chart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F0F1A;
+    --surface: #1A1A2E;
+    --surface2: #16213E;
+    --text: #E2E8F0;
+    --text-dim: #64748B;
+    --border: #2D2D44;
+
+    /* 7 Groups - Spectral warm→cool */
+    --g1: #B91C1C; /* 8人・強ハンド - Deep Crimson */
+    --g2: #DC6B20; /* 8人 - Burnt Orange */
+    --g3: #CA8A04; /* 6,7人 - Dark Gold */
+    --g4: #16A34A; /* 4,5人 - Emerald */
+    --g5: #0891B2; /* 3人 - Teal */
+    --g6: #2563EB; /* 2人 - Royal Blue */
+    --g7: #7C3AED; /* 1人 - Violet */
+    --fold: #1E293B; /* Fold - Dark slate */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Noto Sans JP', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, #B91C1C, #7C3AED);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+    max-width: 680px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.65rem;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .legend-pos {
+    color: var(--text-dim);
+    font-size: 0.6rem;
+  }
+
+  /* Grid */
+  .chart-wrapper {
+    position: relative;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  .chart {
+    display: grid;
+    grid-template-columns: repeat(14, 1fr);
+    gap: 1.5px;
+    width: max-content;
+    min-width: 560px;
+    max-width: 680px;
+  }
+
+  .cell {
+    width: 48px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 3px;
+    position: relative;
+    transition: transform 0.1s, box-shadow 0.15s;
+    cursor: default;
+    user-select: none;
+  }
+
+  .cell:not(.header):not(.fold-cell):hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 12px rgba(255,255,255,0.15);
+    z-index: 10;
+  }
+
+  .cell.header {
+    background: transparent;
+    color: var(--text-dim);
+    font-weight: 700;
+    font-size: 0.75rem;
+  }
+
+  .cell.corner { background: transparent; }
+
+  /* Group colors */
+  .g1 { background: var(--g1); color: #FEE2E2; }
+  .g2 { background: var(--g2); color: #FEF3C7; }
+  .g3 { background: var(--g3); color: #FEF9C3; }
+  .g4 { background: var(--g4); color: #DCFCE7; }
+  .g5 { background: var(--g5); color: #CFFAFE; }
+  .g6 { background: var(--g6); color: #DBEAFE; }
+  .g7 { background: var(--g7); color: #EDE9FE; }
+  .fold-cell { background: var(--fold); color: #475569; }
+
+  /* Suited/Offsuit/Pair indicators */
+  .cell .badge {
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    font-size: 0.4rem;
+    font-weight: 400;
+    opacity: 0.6;
+  }
+
+  /* Position mapping table */
+  .position-table {
+    margin-top: 24px;
+    border-collapse: collapse;
+    font-size: 0.7rem;
+    max-width: 680px;
+    width: 100%;
+  }
+
+  .position-table th,
+  .position-table td {
+    padding: 6px 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .position-table th {
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+  }
+
+  .position-table td {
+    background: var(--surface);
+  }
+
+  .position-table .pos-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* Stats bar */
+  .stats {
+    margin-top: 16px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+  }
+
+  .stats span {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Diagonal highlight */
+  .pair-cell {
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .cell { width: 38px; height: 34px; font-size: 0.55rem; }
+    .chart { min-width: 440px; gap: 1px; }
+    h1 { font-size: 1.2rem; }
+  }
+
+  /* Hover tooltip */
+  .cell[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1E293B;
+    color: #E2E8F0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    white-space: nowrap;
+    z-index: 100;
+    border: 1px solid var(--border);
+    pointer-events: none;
+    font-weight: 400;
+  }
+</style>
+</head>
+<body>
+
+<h1>9-Max Preflop RFI Chart</h1>
+<p class="subtitle">Open Raise Range by Position</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g1)"></div>8人・強ハンド<span class="legend-pos">(UTG premium)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g2)"></div>後ろに8人<span class="legend-pos">(UTG)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g3)"></div>後ろに6,7人<span class="legend-pos">(UTG+1/+2)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g4)"></div>後ろに4,5人<span class="legend-pos">(HJ/LJ)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g5)"></div>後ろに3人<span class="legend-pos">(CO)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g6)"></div>後ろに2人<span class="legend-pos">(BTN)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g7)"></div>後ろに1人<span class="legend-pos">(SB)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--fold)"></div>Fold</div>
+</div>
+
+<div class="chart-wrapper">
+  <div class="chart" id="chart"></div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<table class="position-table">
+  <thead>
+    <tr>
+      <th>Position</th><th>後ろの人数</th><th>Group</th><th>ハンド数 (approx)</th>
+    </tr>
+  </thead>
+  <tbody id="pos-body"></tbody>
+</table>
+
+<script>
+const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+
+// Group encoding: 0=fold, 1=8人強, 2=8人, 3=6,7人, 4=4,5人, 5=3人, 6=2人, 7=1人
+// Matrix[row][col]: row=first rank, col=second rank
+// Upper-right = suited, diagonal = pairs, lower-left = offsuit
+const M = [
+//  A  K  Q  J  T  9  8  7  6  5  4  3  2
+  [ 1, 1, 1, 2, 2, 3, 4, 4, 4, 3, 4, 4, 5], // A
+  [ 1, 1, 2, 2, 3, 4, 5, 5, 5, 6, 6, 6, 7], // K
+  [ 2, 3, 1, 2, 3, 4, 5, 6, 6, 7, 7, 7, 0], // Q
+  [ 3, 3, 4, 2, 2, 3, 5, 6, 7, 7, 0, 0, 0], // J
+  [ 4, 4, 4, 4, 2, 3, 4, 5, 6, 0, 0, 0, 0], // T
+  [ 5, 5, 5, 5, 5, 3, 4, 5, 6, 7, 0, 0, 0], // 9
+  [ 6, 6, 6, 6, 6, 6, 3, 4, 5, 6, 0, 0, 0], // 8
+  [ 6, 7, 7, 7, 7, 7, 6, 4, 5, 6, 7, 0, 0], // 7
+  [ 7, 7, 0, 0, 0, 7, 7, 6, 4, 5, 6, 7, 0], // 6
+  [ 7, 0, 0, 0, 0, 0, 0, 7, 6, 5, 6, 7, 0], // 5
+  [ 7, 0, 0, 0, 0, 0, 0, 0, 7, 7, 5, 6, 7], // 4
+  [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 6, 7], // 3
+  [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7], // 2
+];
+
+const GROUP_NAMES = {
+  0: 'Fold',
+  1: '8人・強ハンド (UTG premium)',
+  2: '後ろに8人 (UTG)',
+  3: '後ろに6,7人 (UTG+1/+2)',
+  4: '後ろに4,5人 (HJ/LJ)',
+  5: '後ろに3人 (CO)',
+  6: '後ろに2人 (BTN)',
+  7: '後ろに1人 (SB)',
+};
+
+const GROUP_CLASS = {
+  0: 'fold-cell',
+  1: 'g1', 2: 'g2', 3: 'g3', 4: 'g4', 5: 'g5', 6: 'g6', 7: 'g7'
+};
+
+const chart = document.getElementById('chart');
+
+// Header row
+const corner = document.createElement('div');
+corner.className = 'cell corner';
+chart.appendChild(corner);
+RANKS.forEach(r => {
+  const h = document.createElement('div');
+  h.className = 'cell header';
+  h.textContent = r;
+  chart.appendChild(h);
+});
+
+// Combo counts per group
+const comboCounts = {};
+for (let i = 0; i <= 7; i++) comboCounts[i] = 0;
+
+// Grid cells
+for (let r = 0; r < 13; r++) {
+  // Row header
+  const rh = document.createElement('div');
+  rh.className = 'cell header';
+  rh.textContent = RANKS[r];
+  chart.appendChild(rh);
+
+  for (let c = 0; c < 13; c++) {
+    const g = M[r][c];
+    const cell = document.createElement('div');
+
+    let label, type, combos;
+    if (r === c) {
+      // Pair
+      label = RANKS[r] + RANKS[c];
+      type = '';
+      combos = 6;
+      cell.classList.add('pair-cell');
+    } else if (c > r) {
+      // Suited (upper triangle)
+      label = RANKS[r] + RANKS[c];
+      type = 's';
+      combos = 4;
+    } else {
+      // Offsuit (lower triangle)
+      label = RANKS[c] + RANKS[r];
+      type = 'o';
+      combos = 12;
+    }
+
+    comboCounts[g] += combos;
+
+    cell.className = `cell ${GROUP_CLASS[g]}`;
+    cell.textContent = label + type;
+    cell.setAttribute('data-tip', `${label}${type} — ${GROUP_NAMES[g]} (${combos} combos)`);
+
+    if (type) {
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = type;
+      // badge is already in the label, skip separate badge
+    }
+
+    chart.appendChild(cell);
+  }
+}
+
+// Stats
+const totalPlayable = 1326 - comboCounts[0];
+const stats = document.getElementById('stats');
+stats.innerHTML = `
+  Total playable: <span>${totalPlayable}</span> / 1326 combos
+  &nbsp;|&nbsp;
+  Open rate (SB): <span>${(totalPlayable / 1326 * 100).toFixed(1)}%</span>
+`;
+
+// Position table
+const positions = [
+  { pos: 'UTG', behind: 8, group: '1+2', color1: 'var(--g1)', color2: 'var(--g2)' },
+  { pos: 'UTG+1', behind: 7, group: '3', color1: 'var(--g3)', color2: null },
+  { pos: 'UTG+2', behind: 6, group: '3', color1: 'var(--g3)', color2: null },
+  { pos: 'LJ', behind: 5, group: '4', color1: 'var(--g4)', color2: null },
+  { pos: 'HJ', behind: 4, group: '4', color1: 'var(--g4)', color2: null },
+  { pos: 'CO', behind: 3, group: '5', color1: 'var(--g5)', color2: null },
+  { pos: 'BTN', behind: 2, group: '6', color1: 'var(--g6)', color2: null },
+  { pos: 'SB', behind: 1, group: '7', color1: 'var(--g7)', color2: null },
+];
+
+// Calculate cumulative combos for each position
+const cumulativeCombos = {};
+let runningTotal = 0;
+for (let g = 1; g <= 7; g++) {
+  runningTotal += comboCounts[g];
+  cumulativeCombos[g] = runningTotal;
+}
+
+const posBody = document.getElementById('pos-body');
+const posGroupMap = {
+  'UTG': 2,
+  'UTG+1': 3,
+  'UTG+2': 3,
+  'LJ': 4,
+  'HJ': 4,
+  'CO': 5,
+  'BTN': 6,
+  'SB': 7,
+};
+
+positions.forEach(p => {
+  const g = posGroupMap[p.pos];
+  const cumul = cumulativeCombos[g];
+  const pct = (cumul / 1326 * 100).toFixed(1);
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><span class="pos-swatch" style="background:${p.color1}"></span>${p.pos}</td>
+    <td>${p.behind}人</td>
+    <td>Group ${p.group}</td>
+    <td>${cumul} combos (${pct}%)</td>
+  `;
+  posBody.appendChild(tr);
+});
+</script>
+
+</body>
+</html>
