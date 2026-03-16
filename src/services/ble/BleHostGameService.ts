@@ -58,7 +58,9 @@ export class BleHostGameService implements GameService {
     };
   }
 
-  startGame(playerNames: string[], blinds: Blinds, initialChips: number): void {
+  startGame(playerNames: string[], blinds: Blinds, initialChips: number, _savedChips?: Record<string, number>): void {
+    const isRematch = this.gameLoop !== null;
+
     const players: Player[] = playerNames.map((name, i) => ({
       seat: i,
       name,
@@ -68,6 +70,10 @@ export class BleHostGameService implements GameService {
       cards: [],
     }));
     this.gameLoop = new GameLoop(players, blinds);
+
+    if (isRematch) {
+      this.sendToAll('gameState', { type: 'rematch', seq: 0 });
+    }
   }
 
   startRound(): void {

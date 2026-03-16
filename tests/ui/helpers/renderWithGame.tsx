@@ -55,6 +55,7 @@ export function renderWithGame(
       canCheck: true, callAmount: 0, minRaise: 20, maxRaise: 1000, canRaise: true,
     })),
     nextRound: jest.fn(),
+    rematch: jest.fn(),
     setViewingSeat: jest.fn(),
     ...contextOverrides,
   };

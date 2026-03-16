@@ -130,4 +130,34 @@ describe('usePersistence (unit — no React)', () => {
     // subscribe should not have been called
     expect(mockService.subscribe).not.toHaveBeenCalled();
   });
+
+  it('resets roundCount after gameOver → rematch (preflop)', async () => {
+    const service = createMockService();
+    const repo = new InMemoryGameRepository();
+    const config: PersistenceConfig = { mode: 'hotseat', initialChips: 1000, blinds: { sb: 5, bb: 10 } };
+
+    subscribePersistence(service, repo, config);
+
+    // Game 1: 2 rounds → gameOver
+    service.emit(makeState('roundEnd', [{ chips: 1100 }, { chips: 900 }]));
+    service.emit(makeState('waiting'));
+    service.emit(makeState('roundEnd', [{ chips: 1200 }, { chips: 800 }]));
+    service.emit(makeState('gameOver', [{ chips: 2000 }, { chips: 0 }]));
+
+    // Rematch: LocalGameService emits waiting then preflop
+    service.emit(makeState('waiting'));
+    service.emit(makeState('preflop'));
+
+    // Game 2: 1 round → gameOver
+    service.emit(makeState('roundEnd', [{ chips: 1100 }, { chips: 900 }]));
+    service.emit(makeState('gameOver', [{ chips: 2000 }, { chips: 0 }]));
+
+    // Flush fire-and-forget promises
+    await new Promise(r => setTimeout(r, 10));
+
+    const history = await repo.getGameHistory();
+    expect(history).toHaveLength(2);
+    expect(history[0].rounds).toBe(2); // Game 1
+    expect(history[1].rounds).toBe(1); // Game 2 (reset, not 3)
+  });
 });

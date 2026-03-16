@@ -16,6 +16,7 @@ export interface GameContextValue {
   getActionInfo: (seat: number) => ActionInfo;
   nextRound: () => void;
   setViewingSeat: (seat: number) => void;
+  rematch: () => void;
 }
 
 export const GameContext = createContext<GameContextValue | null>(null);
@@ -27,14 +28,21 @@ interface GameProviderProps {
   repository?: GameRepository;
   initialChips?: number;
   blinds?: { sb: number; bb: number };
+  playerNames?: string[];
 }
 
-export function GameProvider({ children, service, mode, repository, initialChips, blinds }: GameProviderProps) {
+export function GameProvider({ children, service, mode, repository, initialChips, blinds, playerNames }: GameProviderProps) {
   const [state, setState] = useState<GameState | null>(null);
   const [viewingSeat, setViewingSeat] = useState(0);
   const [showdownResult, setShowdownResult] = useState<ShowdownResult | null>(null);
   const serviceRef = useRef(service);
   serviceRef.current = service;
+  const playerNamesRef = useRef(playerNames);
+  playerNamesRef.current = playerNames;
+  const blindsRef = useRef(blinds);
+  blindsRef.current = blinds;
+  const initialChipsRef = useRef(initialChips);
+  initialChipsRef.current = initialChips;
 
   // Persistence hook (always called unconditionally; repository=null disables)
   const persistMode = mode === 'debug' ? 'hotseat' : mode;
@@ -69,6 +77,10 @@ export function GameProvider({ children, service, mode, repository, initialChips
         if (sdResult.winners.length > 0) {
           setShowdownResult(sdResult);
         }
+      }
+      // BLE client: clear showdownResult on rematch (preflop after gameOver/roundEnd)
+      if (mode === 'ble-client' && newState.phase === 'preflop' && prevPhaseRef.current !== 'preflop') {
+        setShowdownResult(null);
       }
       prevPhaseRef.current = newState.phase;
     });
@@ -110,6 +122,16 @@ export function GameProvider({ children, service, mode, repository, initialChips
     setShowdownResult(null);
   }, []);
 
+  const rematch = useCallback(() => {
+    const names = playerNamesRef.current;
+    const bl = blindsRef.current;
+    const chips = initialChipsRef.current;
+    if (names == null || bl == null || chips == null) return;
+    serviceRef.current.startGame(names, bl, chips);
+    serviceRef.current.startRound();
+    setShowdownResult(null);
+  }, []);
+
   const value: GameContextValue = {
     state,
     mode,
@@ -120,6 +142,7 @@ export function GameProvider({ children, service, mode, repository, initialChips
     getActionInfo,
     nextRound,
     setViewingSeat,
+    rematch,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

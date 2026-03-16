@@ -1,7 +1,7 @@
 // src/components/lobby/LobbyView.tsx
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/colors';
 import { LobbyModeSelector, LobbyMode } from './LobbyModeSelector';
@@ -21,6 +21,8 @@ export function LobbyView() {
   const [sb, setSb] = useState('5');
   const [bb, setBb] = useState('10');
   const [mode, setMode] = useState<'hotseat' | 'debug'>('hotseat');
+  const [resetFeedback, setResetFeedback] = useState(false);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Restore saved settings on mount
   useEffect(() => {
@@ -39,6 +41,7 @@ export function LobbyView() {
         }
       }
     });
+    return () => clearTimeout(resetTimerRef.current);
   }, []);
 
   const updateName = (index: number, name: string) => {
@@ -79,6 +82,28 @@ export function LobbyView() {
         ...(hasChips ? { playerChips: JSON.stringify(chipsByPlayer) } : {}),
       },
     });
+  };
+
+  const handleChipReset = () => {
+    Alert.alert(
+      'チップリセット',
+      '全プレイヤーの保存済みチップをリセットしますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: 'はい',
+          onPress: async () => {
+            const playerNames = names.slice(0, playerCount).map((n, i) => n || `Player ${i}`);
+            for (const name of playerNames) {
+              await repository.savePlayerChips(name, Number(initialChips));
+            }
+            setResetFeedback(true);
+            clearTimeout(resetTimerRef.current);
+            resetTimerRef.current = setTimeout(() => setResetFeedback(false), 3000);
+          },
+        },
+      ],
+    );
   };
 
   const handleHostSubmit = (settings: { hostName: string; sb: string; bb: string; initialChips: string }) => {
@@ -185,6 +210,12 @@ export function LobbyView() {
             </TouchableOpacity>
           </View>
 
+          <TouchableOpacity testID="chip-reset-btn" style={styles.resetBtn} onPress={handleChipReset}>
+            <Text style={styles.resetBtnText}>チップをリセット</Text>
+          </TouchableOpacity>
+          {resetFeedback && (
+            <Text style={styles.resetFeedback}>リセットしました</Text>
+          )}
           <TouchableOpacity testID="start-btn" style={styles.startBtn} onPress={handleStart}>
             <Text style={styles.startBtnText}>ゲーム開始</Text>
           </TouchableOpacity>
@@ -266,4 +297,11 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   startBtnText: { color: Colors.text, fontSize: 18, fontWeight: 'bold' },
+  resetBtn: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: 16,
+  },
+  resetBtnText: { color: Colors.subText, fontSize: 14 },
+  resetFeedback: { color: Colors.pot, fontSize: 12, textAlign: 'center', marginTop: 4 },
 });

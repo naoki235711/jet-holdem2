@@ -171,6 +171,42 @@ describe('BleClientGameService', () => {
     });
   });
 
+  describe('rematch handling', () => {
+    it('clears showdownResult and myCards on rematch message', () => {
+      // Set up state with showdown data
+      sendMessage(transport, 'gameState', makeStateUpdate({ phase: 'roundEnd' as any }));
+      sendMessage(transport, 'privateHand', { type: 'privateHand', seat: 1, cards: ['Ah', 'Kh'] });
+      sendMessage(transport, 'gameState', {
+        type: 'showdownResult',
+        seq: 2,
+        winners: [{ seat: 0, hand: 'Pair', potAmount: 100 }],
+        hands: [{ seat: 0, cards: ['Qs', 'Qd'], description: 'Pair' }],
+      });
+
+      // Send rematch (without consuming showdownResult first)
+      sendMessage(transport, 'gameState', { type: 'rematch', seq: 0 });
+
+      // resolveShowdown should return empty because rematch cleared it
+      const sdAfter = service.resolveShowdown();
+      expect(sdAfter.winners).toHaveLength(0);
+
+      // Cards should be cleared
+      sendMessage(transport, 'gameState', makeStateUpdate({ seq: 10, phase: 'preflop' }));
+      const state = service.getState();
+      expect(state.players.find(p => p.seat === 1)?.cards).toEqual([]);
+    });
+
+    it('notifies listeners on rematch message', () => {
+      sendMessage(transport, 'gameState', makeStateUpdate());
+      const listener = jest.fn();
+      service.subscribe(listener);
+      listener.mockClear();
+
+      sendMessage(transport, 'gameState', { type: 'rematch', seq: 0 });
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('no-op methods', () => {
     it('startGame is no-op', () => {
       expect(() => service.startGame(['A', 'B'], { sb: 5, bb: 10 }, 1000)).not.toThrow();
