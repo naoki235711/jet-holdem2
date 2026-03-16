@@ -13,7 +13,8 @@ export function calculatePresets(state: GameState, mySeat: number): Preset[] {
     ];
   }
 
-  const myPlayer = state.players.find(p => p.seat === mySeat)!;
+  const myPlayer = state.players.find(p => p.seat === mySeat);
+  if (!myPlayer) return [];
   const totalPot = state.pots.reduce((s, p) => s + p.amount, 0)
     + state.players.reduce((s, p) => s + p.bet, 0);
   const callAmount = state.currentBet - myPlayer.bet;
