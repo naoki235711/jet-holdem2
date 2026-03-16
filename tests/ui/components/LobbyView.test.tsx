@@ -1,7 +1,7 @@
 // tests/ui/components/LobbyView.test.tsx
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { LobbyView } from '../../../src/components/lobby/LobbyView';
 
 const mockPush = jest.fn();
@@ -16,8 +16,11 @@ jest.mock('../../../src/services/persistence', () => ({
     getSettings: jest.fn().mockResolvedValue(null),
     saveSettings: jest.fn(),
     getPlayerChips: jest.fn().mockResolvedValue(null),
+    savePlayerChips: jest.fn().mockResolvedValue(undefined),
   },
 }));
+
+jest.spyOn(require('react-native').Alert, 'alert');
 
 describe('LobbyView', () => {
   beforeEach(() => {
@@ -111,6 +114,33 @@ describe('LobbyView', () => {
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/ble-join',
       params: { playerName: 'Alice' },
+    });
+  });
+
+  describe('chip reset', () => {
+    it('renders chip reset button in local mode', () => {
+      render(<LobbyView />);
+      expect(screen.getByTestId('chip-reset-btn')).toBeTruthy();
+    });
+
+    it('calls savePlayerChips for each player on confirm', async () => {
+      const { repository } = require('../../../src/services/persistence');
+      repository.savePlayerChips = jest.fn().mockResolvedValue(undefined);
+
+      render(<LobbyView />);
+      fireEvent.press(screen.getByTestId('chip-reset-btn'));
+
+      // Alert.alert is called — simulate pressing "はい" (second button)
+      const { Alert } = require('react-native');
+      const alertCall = Alert.alert.mock.calls[0];
+      const confirmButton = alertCall[2].find((b: any) => b.text === 'はい');
+      await act(async () => {
+        confirmButton.onPress();
+      });
+
+      // 3 players by default
+      expect(repository.savePlayerChips).toHaveBeenCalledTimes(3);
+      expect(repository.savePlayerChips).toHaveBeenCalledWith('Player 0', 1000);
     });
   });
 });
