@@ -134,4 +134,93 @@ describe('LocalGameService', () => {
       expect(finalState.phase).toBe('roundEnd');
     });
   });
+
+  describe('error: game not started', () => {
+    // LE-1
+    it('getState() throws before startGame', () => {
+      const svc = new LocalGameService();
+      expect(() => svc.getState()).toThrow('Game not started');
+    });
+
+    // LE-2
+    it('getActionInfo() throws before startGame', () => {
+      const svc = new LocalGameService();
+      expect(() => svc.getActionInfo(0)).toThrow('Game not started');
+    });
+
+    // LE-3
+    it('handleAction() throws before startGame', () => {
+      const svc = new LocalGameService();
+      expect(() => svc.handleAction(0, { action: 'fold' })).toThrow('Game not started');
+    });
+
+    // LE-4
+    it('resolveShowdown() throws before startGame', () => {
+      const svc = new LocalGameService();
+      expect(() => svc.resolveShowdown()).toThrow('Game not started');
+    });
+
+    // LE-5
+    it('prepareNextRound() throws before startGame', () => {
+      const svc = new LocalGameService();
+      expect(() => svc.prepareNextRound()).toThrow('Game not started');
+    });
+
+    // LE-6
+    it('startRound() throws before startGame', () => {
+      const svc = new LocalGameService();
+      expect(() => svc.startRound()).toThrow('Game not started');
+    });
+  });
+
+  describe('error: invalid seat', () => {
+    // LE-7
+    it('getActionInfo() throws for non-existent seat', () => {
+      service.startRound();
+      expect(() => service.getActionInfo(5)).toThrow('Invalid seat: 5');
+    });
+  });
+
+  describe('error message translation', () => {
+    // LE-8
+    it('translates "not your turn" to Japanese', () => {
+      service.startRound();
+      const state = service.getState();
+      const wrongSeat = state.players.find(p => p.seat !== state.activePlayer && p.status === 'active')!.seat;
+      const result = service.handleAction(wrongSeat, { action: 'fold' });
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBe('あなたのターンではありません');
+    });
+
+    // LE-9
+    it('translates "Minimum raise is" to Japanese', () => {
+      service.startRound();
+      const state = service.getState();
+      // Raise to a value below minimum (minRaise = currentBet + bb = 10 + 10 = 20)
+      const result = service.handleAction(state.activePlayer, { action: 'raise', amount: 11 });
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBe('レイズ額が最低額に達していません');
+    });
+
+    // LE-10
+    it('all predefined error messages have translations', () => {
+      // "Cannot check" — UTG in preflop faces BB, cannot check
+      service.startRound();
+      const state = service.getState();
+      const checkResult = service.handleAction(state.activePlayer, { action: 'check' });
+      expect(checkResult.valid).toBe(false);
+      expect(checkResult.reason).toBe('チェックできません。コール、レイズ、またはフォールドしてください');
+
+      // "Nothing to call" — BB in preflop after all call, can check but not call
+      // UTG calls, SB calls, then BB can check
+      service.handleAction(state.activePlayer, { action: 'call' });
+      const s2 = service.getState();
+      service.handleAction(s2.activePlayer, { action: 'call' });
+      const s3 = service.getState();
+      // BB faces currentBet == own bet, so 'call' should fail with "Nothing to call"
+      const callResult = service.handleAction(s3.activePlayer, { action: 'call' });
+      expect(callResult.valid).toBe(false);
+      expect(callResult.reason).toBe('コールする必要はありません。チェックしてください');
+    });
+  });
 });
