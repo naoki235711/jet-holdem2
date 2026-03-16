@@ -102,6 +102,10 @@ describe('Pre-action integration', () => {
       // Pre-action should be cleared after execution
       expect(renderAPI.getByTestId('pre-action').props.children).toBe('null');
     });
+
+    // Verify the check was actually executed (activePlayer moved past seat 0)
+    const finalState = service.getState();
+    expect(finalState.activePlayer).not.toBe(0);
   });
 
   it('resets Call pre-action when currentBet changes', async () => {
