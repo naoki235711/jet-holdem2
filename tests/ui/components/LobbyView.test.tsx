@@ -11,6 +11,14 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
+jest.mock('../../../src/services/persistence', () => ({
+  repository: {
+    getSettings: jest.fn().mockResolvedValue(null),
+    saveSettings: jest.fn(),
+    getPlayerChips: jest.fn().mockResolvedValue(null),
+  },
+}));
+
 describe('LobbyView', () => {
   beforeEach(() => {
     mockPush.mockClear();

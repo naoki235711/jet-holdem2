@@ -201,3 +201,22 @@ npx expo start --web --port 8081
 | BLE統合 | Integration | 2 |
 | ブラウザE2E | Playwright | 4 |
 | **合計** | — | **49** |
+
+---
+
+## 既知の警告
+
+### "A worker process has failed to exit gracefully"
+
+`npm test`（全テスト実行）で以下の警告が表示されることがあります：
+
+```
+A worker process has failed to exit gracefully and has been force exited.
+This is likely caused by tests leaking due to improper teardown.
+```
+
+**これはテスト結果に影響しない既知の問題です。**
+
+- **原因:** Jest のマルチプロジェクト構成（`engine`: ts-jest/node + `ui`: react-native プリセット）でワーカーを並行実行した際の終了タイミングの競合
+- **再現条件:** 2プロジェクト同時実行時のみ発生。`npx jest --selectProjects engine` や `npx jest --selectProjects ui` では発生しない
+- **対処不要:** 全テストは正常にパスしており、テストの正確性に影響なし
