@@ -6,13 +6,14 @@ import { useGame } from '../../hooks/useGame';
 import { PlayingCard } from '../common/PlayingCard';
 import { ChipAmount } from '../common/ChipAmount';
 import { Colors } from '../../theme/colors';
+import { ActionTimerBar } from './ActionTimerBar';
 
 interface PlayerSeatProps {
   seat: number;
 }
 
 export function PlayerSeat({ seat }: PlayerSeatProps) {
-  const { state, mode, viewingSeat } = useGame();
+  const { state, mode, viewingSeat, timerRemainingMs, timerDurationMs } = useGame();
   if (!state) return null;
 
   const player = state.players.find(p => p.seat === seat);
@@ -20,33 +21,51 @@ export function PlayerSeat({ seat }: PlayerSeatProps) {
 
   const isActive = state.activePlayer === seat;
   const isFolded = player.status === 'folded';
+  const isAllIn = player.status === 'allIn';
   const isDealer = state.dealer === seat;
   const showCards = mode === 'debug' || seat === viewingSeat;
+  const timerIsActive = isActive && timerRemainingMs !== null;
 
   return (
-    <View
-      testID={`player-seat-${seat}`}
-      style={[
-        styles.container,
-        isActive && styles.active,
-        isFolded && styles.folded,
-      ]}
-    >
-      <View style={styles.header}>
+    <View testID={`player-seat-wrapper-${seat}`}>
+      {isDealer && (
+        <View style={styles.dealerBadgeOuter} testID={`dealer-badge-${seat}`}>
+          <Text style={styles.dealer}>D</Text>
+        </View>
+      )}
+
+      <View
+        testID={`player-seat-${seat}`}
+        style={[
+          styles.container,
+          isActive && styles.active,
+          isFolded && styles.folded,
+        ]}
+      >
         <Text style={styles.name}>{player.name}</Text>
-        {isDealer && <Text style={styles.dealer}>D</Text>}
-      </View>
 
-      <View style={styles.cards}>
-        {player.cards.map((card, i) => (
-          <PlayingCard key={i} card={card} faceUp={showCards} size="hand" />
-        ))}
-      </View>
+        <View style={styles.cards}>
+          {player.cards.map((card, i) => (
+            <PlayingCard key={i} card={card} faceUp={showCards} size="hand" />
+          ))}
+        </View>
 
-      <ChipAmount amount={player.chips} color={Colors.text} fontSize={12} testID={`chip-stack-${seat}`} />
+        <ChipAmount amount={player.chips} color={Colors.text} fontSize={12} testID={`chip-stack-${seat}`} />
+
+        {isFolded && <Text style={styles.statusBadge}>FOLDED</Text>}
+        {isAllIn && <Text style={styles.statusBadge}>ALL IN</Text>}
+
+        <ActionTimerBar
+          remainingMs={timerRemainingMs ?? 0}
+          durationMs={timerDurationMs}
+          isActive={timerIsActive}
+        />
+      </View>
 
       {player.bet > 0 && (
-        <ChipAmount amount={player.bet} color={Colors.pot} fontSize={11} testID={`bet-amount-${seat}`} />
+        <View testID={`bet-outside-${seat}`} style={styles.betOuter}>
+          <ChipAmount amount={player.bet} color={Colors.pot} fontSize={11} testID={`bet-amount-${seat}`} />
+        </View>
       )}
     </View>
   );
@@ -68,16 +87,15 @@ const styles = StyleSheet.create({
   folded: {
     opacity: 0.5,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 2,
-  },
   name: {
     color: Colors.text,
     fontSize: 12,
     fontWeight: '600',
+    marginBottom: 2,
+  },
+  dealerBadgeOuter: {
+    alignItems: 'center',
+    marginBottom: 2,
   },
   dealer: {
     color: '#FBBF24',
@@ -93,5 +111,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 2,
     marginVertical: 4,
+  },
+  statusBadge: {
+    color: Colors.text,
+    fontSize: 9,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
+  betOuter: {
+    alignItems: 'center',
+    marginTop: 4,
   },
 });

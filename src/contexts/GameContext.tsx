@@ -6,6 +6,7 @@ import { ActionResult } from '../gameEngine';
 import { GameRepository } from '../services/persistence/GameRepository';
 import { usePersistence, PersistenceConfig } from '../hooks/usePersistence';
 import { PreActionType } from '../components/actions/types';
+import { useActionTimer, ACTION_TIMER_DURATION_MS } from '../hooks/useActionTimer';
 
 export interface GameContextValue {
   state: GameState | null;
@@ -20,6 +21,8 @@ export interface GameContextValue {
   rematch: () => void;
   preAction: PreActionType;
   setPreAction: (action: PreActionType) => void;
+  timerRemainingMs: number | null;
+  timerDurationMs: number;
 }
 
 export const GameContext = createContext<GameContextValue | null>(null);
@@ -180,6 +183,29 @@ export function GameProvider({ children, service, mode, repository, initialChips
     setShowdownResult(null);
   }, []);
 
+  const handleTimeout = useCallback(() => {
+    if (mode === 'debug' || mode === 'ble-client') return;
+
+    const currentState = serviceRef.current.getState();
+    if (currentState.activePlayer < 0) return;
+
+    const seat = currentState.activePlayer;
+    const actionInfo = serviceRef.current.getActionInfo(seat);
+
+    if (actionInfo.canCheck) {
+      doAction(seat, { action: 'check' });
+    } else {
+      doAction(seat, { action: 'fold' });
+    }
+  }, [mode, doAction]);
+
+  const { remainingMs, durationMs, isRunning } = useActionTimer({
+    mode,
+    activePlayer: state?.activePlayer ?? -1,
+    phase: state?.phase ?? 'waiting',
+    onTimeout: handleTimeout,
+  });
+
   const value: GameContextValue = {
     state,
     mode,
@@ -193,6 +219,8 @@ export function GameProvider({ children, service, mode, repository, initialChips
     rematch,
     preAction,
     setPreAction,
+    timerRemainingMs: mode === 'debug' ? null : (isRunning ? remainingMs : null),
+    timerDurationMs: durationMs,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

@@ -13,7 +13,7 @@ module.exports = {
     {
       displayName: 'ui',
       preset: 'react-native',
-      roots: ['<rootDir>/tests/ui', '<rootDir>/src'],
+      roots: ['<rootDir>/tests/ui', '<rootDir>/tests/hooks', '<rootDir>/src'],
       setupFiles: ['<rootDir>/tests/ui/setup.js'],
       setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
       transformIgnorePatterns: [

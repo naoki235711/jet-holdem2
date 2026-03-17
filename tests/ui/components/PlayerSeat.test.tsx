@@ -4,6 +4,7 @@ import React from 'react';
 import { screen } from '@testing-library/react-native';
 import { PlayerSeat } from '../../../src/components/table/PlayerSeat';
 import { renderWithGame, createMockGameState } from '../helpers/renderWithGame';
+import { ACTION_TIMER_DURATION_MS } from '../../../src/hooks/useActionTimer';
 
 describe('PlayerSeat', () => {
   it('renders player name and chips', () => {
@@ -68,5 +69,68 @@ describe('PlayerSeat', () => {
       state: createMockGameState(),
     });
     expect(screen.getByText('10')).toBeTruthy();
+  });
+
+  it('shows status badge for folded player', () => {
+    const state = createMockGameState({
+      players: [
+        { seat: 0, name: 'Alice', chips: 990, status: 'folded', bet: 0, cards: ['Ah', 'Kh'] },
+        { seat: 1, name: 'Bob', chips: 995, status: 'active', bet: 5, cards: ['Td', 'Jd'] },
+        { seat: 2, name: 'Charlie', chips: 990, status: 'active', bet: 10, cards: ['7s', '8s'] },
+      ],
+    });
+    renderWithGame(<PlayerSeat seat={0} />, { state });
+    expect(screen.getByText('FOLDED')).toBeTruthy();
+  });
+
+  it('shows status badge for allIn player', () => {
+    const state = createMockGameState({
+      players: [
+        { seat: 0, name: 'Alice', chips: 0, status: 'allIn', bet: 990, cards: ['Ah', 'Kh'] },
+        { seat: 1, name: 'Bob', chips: 995, status: 'active', bet: 5, cards: ['Td', 'Jd'] },
+        { seat: 2, name: 'Charlie', chips: 990, status: 'active', bet: 10, cards: ['7s', '8s'] },
+      ],
+    });
+    renderWithGame(<PlayerSeat seat={0} />, { state });
+    expect(screen.getByText('ALL IN')).toBeTruthy();
+  });
+
+  it('renders timer bar track for active player', () => {
+    const { getByTestId } = renderWithGame(<PlayerSeat seat={0} />, {
+      state: createMockGameState({ activePlayer: 0 }),
+      mode: 'hotseat',
+      timerRemainingMs: 15000,
+      timerDurationMs: ACTION_TIMER_DURATION_MS,
+    });
+    expect(getByTestId('timer-track')).toBeTruthy();
+  });
+
+  it('renders transparent timer bar for non-active player', () => {
+    const { getByTestId } = renderWithGame(<PlayerSeat seat={1} />, {
+      state: createMockGameState({ activePlayer: 0 }),
+      mode: 'hotseat',
+      timerRemainingMs: 15000,
+      timerDurationMs: ACTION_TIMER_DURATION_MS,
+    });
+    const track = getByTestId('timer-track');
+    expect(track.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ backgroundColor: 'transparent' })]),
+    );
+  });
+
+  it('renders dealer badge outside container', () => {
+    const { getByTestId } = renderWithGame(<PlayerSeat seat={0} />, {
+      state: createMockGameState({ dealer: 0 }),
+    });
+    const wrapper = getByTestId('player-seat-wrapper-0');
+    expect(wrapper).toBeTruthy();
+    expect(screen.getByTestId('dealer-badge-0')).toBeTruthy();
+  });
+
+  it('renders bet amount outside container', () => {
+    const { getByTestId } = renderWithGame(<PlayerSeat seat={2} />, {
+      state: createMockGameState(),
+    });
+    expect(getByTestId('bet-outside-2')).toBeTruthy();
   });
 });
