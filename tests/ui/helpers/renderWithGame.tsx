@@ -59,6 +59,8 @@ export function renderWithGame(
     setViewingSeat: jest.fn(),
     preAction: null,
     setPreAction: jest.fn(),
+    timerRemainingMs: null,
+    timerDurationMs: 30000,
     ...contextOverrides,
   };
 
