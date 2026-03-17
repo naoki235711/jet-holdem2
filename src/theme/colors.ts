@@ -11,4 +11,6 @@ export const Colors = {
   call: '#EF4444',
   raise: '#B91C1C',
   overlay: 'rgba(0,0,0,0.7)',
+  timerWarning: '#FBBF24',
+  timerDanger: '#EF4444',
 } as const;
