@@ -225,6 +225,7 @@ export default function GameScreen() {
   }, []);
 
   // Wire mid-game spectator join for ble-host
+  // LobbyHost uses a single-subscriber slot — only one caller can register onSpectatorJoined
   React.useEffect(() => {
     if (mode !== 'ble-host') return;
     const lobbyHost = getLobbyHost();

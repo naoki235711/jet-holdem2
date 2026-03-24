@@ -28,6 +28,7 @@ export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyPro
     const transport = new MockBleHostTransport();
     const host = new LobbyHost(transport, hostName, { sb, bb, initialChips });
 
+    setLobbyHost(host);
     host.onPlayersChanged((p) => { setPlayers(p); playersRef.current = p; });
     host.onGameStart(() => {
       const clientSeatMap = host.getClientSeatMap();
@@ -50,8 +51,6 @@ export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyPro
     });
     host.onError((msg) => setError(msg));
     host.start();
-
-    setLobbyHost(host);
     lobbyHost.current = host;
     return () => {
       host.stop();
