@@ -17,6 +17,10 @@ export type JoinResult =
   | { accepted: true; gameSettings: GameSettings }
   | { accepted: false; reason: string };
 
+export type SpectateResult =
+  | { accepted: true; gameSettings: GameSettings }
+  | { accepted: false; reason: string };
+
 export type GameStartConfig = {
   blinds: { sb: number; bb: number };
   initialChips: number;
@@ -30,6 +34,7 @@ export class LobbyClient {
 
   private _onHostDiscovered: ((hostId: string, hostName: string) => void) | null = null;
   private _onJoinResult: ((result: JoinResult) => void) | null = null;
+  private _onSpectateResult: ((result: SpectateResult) => void) | null = null;
   private _onPlayersChanged: ((players: LobbyPlayer[]) => void) | null = null;
   private _onGameStart: ((config: GameStartConfig) => void) | null = null;
   private _onDisconnected: (() => void) | null = null;
@@ -71,6 +76,10 @@ export class LobbyClient {
     this.sendToHost({ type: 'ready' });
   }
 
+  spectate(): void {
+    this.sendToHost({ type: 'spectate', protocolVersion: PROTOCOL_VERSION, spectatorName: this.playerName });
+  }
+
   async disconnect(): Promise<void> {
     await this.transport.disconnect();
     this.state = 'idle';
@@ -96,6 +105,9 @@ export class LobbyClient {
       case 'joinResponse':
         this.handleJoinResponse(msg);
         break;
+      case 'spectateResponse':
+        this.handleSpectateResponse(msg);
+        break;
       case 'playerUpdate':
         this.players = msg.players;
         this._onPlayersChanged?.(msg.players);
@@ -108,6 +120,8 @@ export class LobbyClient {
         this.state = 'idle';
         this._onDisconnected?.();
         break;
+      case 'spectatorUpdate':
+        break; // no-op in client lobby (count not displayed here)
     }
   }
 
@@ -123,6 +137,16 @@ export class LobbyClient {
     }
   }
 
+  private handleSpectateResponse(msg: LobbyHostMessage & { type: 'spectateResponse' }): void {
+    if (msg.accepted) {
+      this.state = 'joined'; // reuse joined state for spectators
+      this._onSpectateResult?.({ accepted: true, gameSettings: msg.gameSettings });
+    } else {
+      this.state = 'idle';
+      this._onSpectateResult?.({ accepted: false, reason: msg.reason });
+    }
+  }
+
   // --- Callbacks ---
 
   onHostDiscovered(callback: (hostId: string, hostName: string) => void): void {
@@ -131,6 +155,10 @@ export class LobbyClient {
 
   onJoinResult(callback: (result: JoinResult) => void): void {
     this._onJoinResult = callback;
+  }
+
+  onSpectateResult(callback: (result: SpectateResult) => void): void {
+    this._onSpectateResult = callback;
   }
 
   onPlayersChanged(callback: (players: LobbyPlayer[]) => void): void {
