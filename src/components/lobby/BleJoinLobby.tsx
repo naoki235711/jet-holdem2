@@ -12,7 +12,7 @@ type BleJoinLobbyProps = {
   playerName: string;
 };
 
-type Phase = 'scanning' | 'connecting' | 'waiting' | 'disconnected';
+type Phase = 'scanning' | 'connecting' | 'roleSelect' | 'waiting' | 'disconnected';
 
 const MAX_SEATS = 4;
 
@@ -24,6 +24,7 @@ export function BleJoinLobby({ playerName }: BleJoinLobbyProps) {
   const [gameSettings, setGameSettings] = useState<GameSettings | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const lobbyClient = useRef<LobbyClient | null>(null);
+  const isSpectatorRef = useRef(false);
 
   useEffect(() => {
     const transport = new MockBleClientTransport();
@@ -44,18 +45,36 @@ export function BleJoinLobby({ playerName }: BleJoinLobbyProps) {
       }
     });
 
+    client.onSpectateResult((result) => {
+      if (result.accepted) {
+        setPhase('waiting');
+        setGameSettings(result.gameSettings);
+        isSpectatorRef.current = true;
+      } else {
+        setJoinError(result.reason);
+        setPhase('scanning');
+      }
+    });
+
     client.onPlayersChanged((p) => setPlayers(p));
 
     client.onGameStart((config) => {
       router.push({
         pathname: '/game',
-        params: {
-          mode: 'ble-client',
-          sb: String(config.blinds.sb),
-          bb: String(config.blinds.bb),
-          initialChips: String(config.initialChips),
-          seat: String(client.mySeat),
-        },
+        params: isSpectatorRef.current
+          ? {
+              mode: 'ble-spectator',
+              sb: String(config.blinds.sb),
+              bb: String(config.blinds.bb),
+              initialChips: String(config.initialChips),
+            }
+          : {
+              mode: 'ble-client',
+              sb: String(config.blinds.sb),
+              bb: String(config.blinds.bb),
+              initialChips: String(config.initialChips),
+              seat: String(client.mySeat),
+            },
       });
     });
 
@@ -71,11 +90,22 @@ export function BleJoinLobby({ playerName }: BleJoinLobbyProps) {
 
   const handleSelectHost = (hostId: string) => {
     setPhase('connecting');
-    lobbyClient.current?.connectToHost(hostId);
+    lobbyClient.current?.connectAndWait(hostId).then(() => {
+      setPhase('roleSelect');
+    });
   };
 
   const handleReady = () => {
     lobbyClient.current?.setReady();
+  };
+
+  const handleJoin = () => {
+    lobbyClient.current?.join();
+    // onJoinResult callback will set phase to 'waiting'
+  };
+
+  const handleSpectate = () => {
+    lobbyClient.current?.spectate();
   };
 
   const handleBack = () => {
@@ -93,6 +123,23 @@ export function BleJoinLobby({ playerName }: BleJoinLobbyProps) {
           onPress={handleBack}
         >
           <Text style={styles.backBtnText}>ロビーに戻る</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (phase === 'roleSelect') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>ロビーに接続しました</Text>
+        <TouchableOpacity testID="join-btn" style={styles.readyBtn} onPress={handleJoin}>
+          <Text style={styles.readyBtnText}>ゲームに参加</Text>
+        </TouchableOpacity>
+        <TouchableOpacity testID="spectate-btn" style={styles.readyBtn} onPress={handleSpectate}>
+          <Text style={styles.readyBtnText}>観戦する</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+          <Text style={styles.backBtnText}>キャンセル</Text>
         </TouchableOpacity>
       </View>
     );

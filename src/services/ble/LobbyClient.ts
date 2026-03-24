@@ -70,6 +70,21 @@ export class LobbyClient {
     await this.sendToHost({ type: 'join', protocolVersion: PROTOCOL_VERSION, playerName: this.playerName });
   }
 
+  async connectAndWait(hostId: string): Promise<void> {
+    this.state = 'connecting';
+    await this.transport.connectToHost(hostId);
+
+    this.transport.onMessageReceived((_charId: string, data: Uint8Array) => {
+      const json = this.chunkManager.decode('host', data);
+      if (json) this.handleMessage(json);
+    });
+    // Note: does NOT send join — caller decides role
+  }
+
+  join(): void {
+    this.sendToHost({ type: 'join', protocolVersion: PROTOCOL_VERSION, playerName: this.playerName });
+  }
+
   setReady(): void {
     if (this.state !== 'joined') return;
     this.state = 'ready';
