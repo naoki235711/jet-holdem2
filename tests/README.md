@@ -75,33 +75,33 @@ e2e/
 
 Jest プロジェクト: `engine` / 環境: Node.js / フレームワーク: ts-jest
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/gameEngine/Card.test.ts` | カードの生成・比較 |
-| `tests/gameEngine/Deck.test.ts` | デッキのシャッフル・配布 |
-| `tests/gameEngine/HandEvaluator.test.ts` | ハンド評価（役の判定） |
-| `tests/gameEngine/PotManager.test.ts` | ポット計算・サイドポット |
-| `tests/gameEngine/BettingRound.test.ts` | ベッティングラウンドのロジック |
-| `tests/gameEngine/GameLoop.test.ts` | ゲーム全体のフロー制御 |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/gameEngine/Card.test.ts` | カードの生成・比較 | `8beacab` |
+| `tests/gameEngine/Deck.test.ts` | デッキのシャッフル・配布 | `312a34d` |
+| `tests/gameEngine/HandEvaluator.test.ts` | ハンド評価（役の判定） | `8beacab` |
+| `tests/gameEngine/PotManager.test.ts` | ポット計算・サイドポット | `0a66623` |
+| `tests/gameEngine/BettingRound.test.ts` | ベッティングラウンドのロジック | `93e9218` |
+| `tests/gameEngine/GameLoop.test.ts` | ゲーム全体のフロー制御 | `0ede0d4` |
 
 ### 2. ゲームエンジン Integration テスト（1ファイル）
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/gameEngine/integration/GameLoopPotManager.integration.test.ts` | GameLoop + PotManager 結合（サイドポット、オールイン） |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/gameEngine/integration/GameLoopPotManager.integration.test.ts` | GameLoop + PotManager 結合（サイドポット、オールイン） | `889a355` |
 
 ### 3. サービス Unit テスト（1ファイル）
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/services/LocalGameService.test.ts` | LocalGameService（UIとエンジンの橋渡し、エラーハンドリング） |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/services/LocalGameService.test.ts` | LocalGameService（UIとエンジンの橋渡し、エラーハンドリング） | `26d9231` |
 
 ### 4. Hooks Unit テスト（2ファイル）
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/hooks/useActionTimer.test.tsx` | アクションタイマーフック（タイムアウト・リセット・無効化） |
-| `tests/hooks/useGame.test.tsx` | useGame フック（コンテキスト外エラー・正常系） |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/hooks/useActionTimer.test.tsx` | アクションタイマーフック（タイムアウト・リセット・無効化） | `888314c` |
+| `tests/hooks/useGame.test.tsx` | useGame フック（コンテキスト外エラー・正常系） | `53fef08` |
 
 ### 5. BLE Unit テスト（12ファイル）
 
