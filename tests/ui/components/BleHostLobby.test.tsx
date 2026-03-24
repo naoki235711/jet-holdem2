@@ -15,6 +15,8 @@ const mockHost = {
   onPlayersChanged: jest.fn(),
   onGameStart: jest.fn(),
   onError: jest.fn(),
+  getClientSeatMap: jest.fn().mockReturnValue(new Map()),
+  getSpectatorClientIds: jest.fn().mockReturnValue([]),
 };
 
 jest.mock('../../../src/services/ble/LobbyHost', () => ({
@@ -23,6 +25,11 @@ jest.mock('../../../src/services/ble/LobbyHost', () => ({
 
 jest.mock('../../../src/services/ble/MockBleTransport', () => ({
   MockBleHostTransport: jest.fn(),
+}));
+
+jest.mock('../../../src/services/ble/transportRegistry', () => ({
+  setLobbyHost: jest.fn(),
+  clearLobbyHost: jest.fn(),
 }));
 
 describe('BleHostLobby', () => {
@@ -84,7 +91,16 @@ describe('BleHostLobby', () => {
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/game',
-      params: { mode: 'ble-host', sb: '5', bb: '10', initialChips: '1000', seat: '0' },
+      params: expect.objectContaining({
+        mode: 'ble-host',
+        sb: '5',
+        bb: '10',
+        initialChips: '1000',
+        seat: '0',
+        playerNames: expect.any(String),
+        clientSeatMap: expect.any(String),
+        spectatorClientIds: expect.any(String),
+      }),
     });
   });
 

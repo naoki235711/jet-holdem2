@@ -5,6 +5,7 @@ import { Colors } from '../../theme/colors';
 import { LobbyPlayer } from '../../services/ble/LobbyProtocol';
 import { LobbyHost } from '../../services/ble/LobbyHost';
 import { MockBleHostTransport } from '../../services/ble/MockBleTransport';
+import { setLobbyHost, clearLobbyHost } from '../../services/ble/transportRegistry';
 import { PlayerSlot } from './PlayerSlot';
 
 type BleHostLobbyProps = {
@@ -19,6 +20,7 @@ const MAX_SEATS = 4;
 export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyProps) {
   const router = useRouter();
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
+  const playersRef = useRef<LobbyPlayer[]>([]);
   const [error, setError] = useState<string | null>(null);
   const lobbyHost = useRef<LobbyHost | null>(null);
 
@@ -26,8 +28,12 @@ export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyPro
     const transport = new MockBleHostTransport();
     const host = new LobbyHost(transport, hostName, { sb, bb, initialChips });
 
-    host.onPlayersChanged((p) => setPlayers(p));
+    host.onPlayersChanged((p) => { setPlayers(p); playersRef.current = p; });
     host.onGameStart(() => {
+      const clientSeatMap = host.getClientSeatMap();
+      const spectatorIds = host.getSpectatorClientIds();
+      const allPlayers = [{ seat: 0, name: hostName }, ...playersRef.current.filter(p => p.seat !== 0)];
+      const names = allPlayers.sort((a, b) => a.seat - b.seat).map(p => p.name);
       router.push({
         pathname: '/game',
         params: {
@@ -36,15 +42,20 @@ export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyPro
           bb: String(bb),
           initialChips: String(initialChips),
           seat: '0',
+          playerNames: JSON.stringify(names),
+          clientSeatMap: JSON.stringify(Object.fromEntries(clientSeatMap)),
+          spectatorClientIds: JSON.stringify(spectatorIds),
         },
       });
     });
     host.onError((msg) => setError(msg));
     host.start();
 
+    setLobbyHost(host);
     lobbyHost.current = host;
     return () => {
       host.stop();
+      clearLobbyHost();
     };
   }, []);
 

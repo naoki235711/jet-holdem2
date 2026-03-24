@@ -8,7 +8,8 @@ import { GameService } from '../src/services/GameService';
 import { LocalGameService } from '../src/services/LocalGameService';
 import { BleHostGameService } from '../src/services/ble/BleHostGameService';
 import { BleClientGameService } from '../src/services/ble/BleClientGameService';
-import { getHostTransport, getClientTransport, clearHostTransport, clearClientTransport } from '../src/services/ble/transportRegistry';
+import { BleSpectatorGameService } from '../src/services/ble/BleSpectatorGameService';
+import { getHostTransport, getClientTransport, clearHostTransport, clearClientTransport, getLobbyHost, clearLobbyHost } from '../src/services/ble/transportRegistry';
 import { useGame } from '../src/hooks/useGame';
 import { PlayerSeat } from '../src/components/table/PlayerSeat';
 import { CommunityCards } from '../src/components/table/CommunityCards';
@@ -159,9 +160,10 @@ export default function GameScreen() {
     initialChips: string;
     sb: string;
     bb: string;
-    mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
+    mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client' | 'ble-spectator';
     seat?: string;
     clientSeatMap?: string;
+    spectatorClientIds?: string;  // JSON string[]
     playerChips?: string;  // JSON Record<string, number>
   }>();
 
@@ -181,10 +183,18 @@ export default function GameScreen() {
       const seatMap = new Map<string, number>(
         Object.entries(parsed).map(([k, v]) => [k, Number(v)]),
       );
-      const svc = new BleHostGameService(transport, seatMap);
+      const spectatorIds: string[] = params.spectatorClientIds
+        ? JSON.parse(params.spectatorClientIds)
+        : [];
+      const svc = new BleHostGameService(transport, seatMap, spectatorIds);
       svc.startGame(playerNames, blinds, initialChips);
       svc.startRound();
       return svc;
+    }
+
+    if (mode === 'ble-spectator') {
+      const transport = getClientTransport()!;
+      return new BleSpectatorGameService(transport);
     }
 
     if (mode === 'ble-client') {
@@ -202,15 +212,27 @@ export default function GameScreen() {
     return svc;
   });
 
-  const viewingSeat = (mode === 'ble-host') ? 0 : Number(params.seat ?? '0');
+  const viewingSeat = (mode === 'ble-host' || mode === 'ble-spectator')
+    ? 0
+    : Number(params.seat ?? '0');
 
   // Cleanup transport registry on unmount
   React.useEffect(() => {
     return () => {
-      if (mode === 'ble-host') clearHostTransport();
-      if (mode === 'ble-client') clearClientTransport();
+      if (mode === 'ble-host') { clearHostTransport(); clearLobbyHost(); }
+      if (mode === 'ble-client' || mode === 'ble-spectator') clearClientTransport();
     };
   }, []);
+
+  // Wire mid-game spectator join for ble-host
+  React.useEffect(() => {
+    if (mode !== 'ble-host') return;
+    const lobbyHost = getLobbyHost();
+    if (!lobbyHost) return;
+    lobbyHost.onSpectatorJoined((clientId) => {
+      (service as BleHostGameService).addSpectator(clientId);
+    });
+  }, [service]);
 
   const repo = mode === 'debug' ? undefined : repository;
 
@@ -218,6 +240,7 @@ export default function GameScreen() {
     <GameProvider
       service={service}
       mode={mode}
+      mySeat={mode === 'ble-client' ? Number(params.seat ?? '0') : undefined}
       repository={repo}
       initialChips={initialChips}
       blinds={blinds}
