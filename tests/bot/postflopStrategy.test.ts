@@ -22,10 +22,10 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
 
 describe('decidePostflopAction', () => {
   it('bets with strong hand (flush) on flop when check is available', () => {
-    // Hero: Ah Ad → evaluate with community Ah Kd 7c = trips
+    // Hero: Ad As → evaluate with community Ah Kd 7c = trip aces
     const result = decidePostflopAction(
       makeState(),
-      ['Ah', 'As'],  // trips on Ah Kd 7c
+      ['Ad', 'As'],  // trip aces on Ah Kd 7c
       0,
     );
     expect(['raise', 'bet', 'allIn']).toContain(result.action);

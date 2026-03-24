@@ -30,7 +30,7 @@ function classifyStrength(holeCards: Card[], community: Card[]): Strength {
 
   // FullHouse(6) and above are always Strong (set / boat / quads / straight flush)
   if (result.rank >= HandRank.FullHouse)    return 'Strong';
-  // Straight(4), ThreeOfAKind(3) — strong made hands
+  // ThreeOfAKind and above (sets, straights, flushes, full houses, etc.) bet aggressively
   if (result.rank >= HandRank.ThreeOfAKind) return 'Strong';
   if (result.rank >= HandRank.TwoPair)      return 'Medium';
   if (result.rank === HandRank.OnePair)     return 'Weak';
@@ -106,7 +106,7 @@ export function decidePostflopAction(
 
   if (strength === 'Strong') {
     if (spr < 4) return { action: 'allIn' };
-    return betSize(state, ip ? 0.75 : 0.75, player);
+    return betSize(state, 0.75, player);  // same bet size IP and OOP
   }
 
   if (strength === 'Medium') {
