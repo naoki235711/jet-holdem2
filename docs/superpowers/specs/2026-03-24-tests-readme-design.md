@@ -50,9 +50,11 @@ tests/
 │   ├── *.test.ts              ← unit (11)
 │   └── integration/           ← integration (2)
 ├── persistence/               ← unit (3)
-├── hooks/                     ← unit (1) [NEW — was missing from test-guide.md]
+├── hooks/                     ← unit (1)
 ├── integration/               ← cross-layer integration (3)
 └── ui/
+    ├── setup.js               ← UIテスト用セットアップ（Modalモック等）
+    ├── helpers/               ← テストヘルパー（renderWithGame等）
     ├── components/            ← unit (20)
     ├── contexts/              ← unit (1)
     └── integration/           ← integration (7)
@@ -84,6 +86,10 @@ Extracted from `docs/ui-integration-test-plan.md` §5, keeping only the durable 
 
 Carried over from `docs/test-guide.md` unchanged.
 
+## Prerequisites
+
+The reorganization spec `2026-03-24-test-directory-reorganization-design.md` must be applied before or in the same commit/PR as this work. The `tests/README.md` directory diagram and test list reference the post-reorganization path `tests/gameEngine/integration/GameLoopPotManager.integration.test.ts`, which does not yet exist at the time of writing.
+
 ## File Operations
 
 | Operation | File |
@@ -94,6 +100,6 @@ Carried over from `docs/test-guide.md` unchanged.
 
 ## Success Criteria
 
-- `tests/README.md` accurately reflects all currently existing test files.
+- `tests/README.md` accurately reflects all test files in the post-reorganization target state.
 - `docs/test-guide.md` is deleted.
 - `npm test` continues to pass (this change is documentation-only).
