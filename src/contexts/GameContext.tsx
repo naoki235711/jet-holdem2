@@ -223,7 +223,7 @@ export function GameProvider({ children, service, mode, repository, initialChips
   }, [mode, doAction]);
 
   const { remainingMs, durationMs, isRunning } = useActionTimer({
-    mode: effectiveMode,
+    mode: mode,
     activePlayer: state?.activePlayer ?? -1,
     phase: state?.phase ?? 'waiting',
     onTimeout: handleTimeout,
