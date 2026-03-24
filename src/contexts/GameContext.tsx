@@ -10,7 +10,7 @@ import { useActionTimer, ACTION_TIMER_DURATION_MS } from '../hooks/useActionTime
 
 export interface GameContextValue {
   state: GameState | null;
-  mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
+  mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client' | 'ble-spectator';
   viewingSeat: number;
   service: GameService;
   showdownResult: ShowdownResult | null;
@@ -30,17 +30,21 @@ export const GameContext = createContext<GameContextValue | null>(null);
 interface GameProviderProps {
   children: React.ReactNode;
   service: GameService;
-  mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
+  mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client' | 'ble-spectator';
   repository?: GameRepository;
   initialChips?: number;
   blinds?: { sb: number; bb: number };
   playerNames?: string[];
+  mySeat?: number;
 }
 
-export function GameProvider({ children, service, mode, repository, initialChips, blinds, playerNames }: GameProviderProps) {
+export function GameProvider({ children, service, mode, repository, initialChips, blinds, playerNames, mySeat: mySeatProp }: GameProviderProps) {
   const [state, setState] = useState<GameState | null>(null);
   const [viewingSeat, setViewingSeat] = useState(0);
   const [showdownResult, setShowdownResult] = useState<ShowdownResult | null>(null);
+  const [effectiveMode, setEffectiveMode] = useState(mode);
+  const effectiveModeRef = useRef(effectiveMode);
+  useEffect(() => { effectiveModeRef.current = effectiveMode; }, [effectiveMode]);
   const serviceRef = useRef(service);
   serviceRef.current = service;
   const playerNamesRef = useRef(playerNames);
@@ -73,7 +77,7 @@ export function GameProvider({ children, service, mode, repository, initialChips
   }, [viewingSeat, mode]);
 
   // Persistence hook (always called unconditionally; repository=null disables)
-  const persistMode = mode === 'debug' ? 'hotseat' : mode;
+  const persistMode = mode === 'debug' ? 'hotseat' : (mode === 'ble-spectator' ? 'ble-client' : mode);
   usePersistence(
     service,
     repository ?? null,
@@ -87,13 +91,13 @@ export function GameProvider({ children, service, mode, repository, initialChips
   const prevPhaseRef = useRef<string | null>(null);
 
   const autoResolveShowdown = useCallback(() => {
-    if (mode === 'ble-client') return;
+    if (effectiveModeRef.current === 'ble-client' || effectiveModeRef.current === 'ble-spectator') return;
     const currentState = serviceRef.current.getState();
     if (currentState.phase === 'showdown') {
       const sdResult = serviceRef.current.resolveShowdown();
       setShowdownResult(sdResult);
     }
-  }, [mode]);
+  }, []);
 
   useEffect(() => {
     // Sync initial state in case service already has state before subscription
@@ -131,17 +135,33 @@ export function GameProvider({ children, service, mode, repository, initialChips
       // BLE client: detect showdown from host's stateUpdate.
       // showdownResult message arrives before the stateUpdate (same characteristic,
       // sent first in resolveShowdown), so lastShowdownResult is already set.
-      if (mode === 'ble-client' && prevPhaseRef.current !== 'showdown' && newState.phase === 'showdown') {
+      if (
+        (effectiveModeRef.current === 'ble-client' || effectiveModeRef.current === 'ble-spectator') &&
+        prevPhaseRef.current !== 'showdown' &&
+        newState.phase === 'showdown'
+      ) {
         const sdResult = serviceRef.current.resolveShowdown();
         if (sdResult.winners.length > 0) {
           setShowdownResult(sdResult);
         }
       }
       // BLE client: clear showdownResult on rematch (preflop after gameOver/roundEnd)
-      if (mode === 'ble-client' && newState.phase === 'preflop' && prevPhaseRef.current !== 'preflop') {
+      if (
+        (effectiveModeRef.current === 'ble-client' || effectiveModeRef.current === 'ble-spectator') &&
+        newState.phase === 'preflop' &&
+        prevPhaseRef.current !== 'preflop'
+      ) {
         setShowdownResult(null);
       }
       prevPhaseRef.current = newState.phase;
+
+      // Auto-transition to ble-spectator when mySeat player busts
+      if (effectiveModeRef.current === 'ble-client' && mySeatProp !== undefined) {
+        const myPlayer = newState.players.find(p => p.seat === mySeatProp);
+        if (myPlayer?.status === 'out') {
+          setEffectiveMode('ble-spectator');
+        }
+      }
     });
     return unsub;
   }, [service, mode, setPreAction, autoResolveShowdown]);
@@ -154,11 +174,14 @@ export function GameProvider({ children, service, mode, repository, initialChips
   }, [mode, state?.activePlayer]);
 
   const doAction = useCallback((seat: number, action: PlayerAction): ActionResult => {
+    if (effectiveMode === 'ble-spectator') {
+      return { valid: false, reason: 'Spectator cannot act' };
+    }
     const result = serviceRef.current.handleAction(seat, action);
     if (!result.valid) return result;
     autoResolveShowdown();
     return result;
-  }, [autoResolveShowdown]);
+  }, [effectiveMode, autoResolveShowdown]);
 
   const getActionInfo = useCallback((seat: number): ActionInfo => {
     return serviceRef.current.getActionInfo(seat);
@@ -200,7 +223,7 @@ export function GameProvider({ children, service, mode, repository, initialChips
   }, [mode, doAction]);
 
   const { remainingMs, durationMs, isRunning } = useActionTimer({
-    mode,
+    mode: effectiveMode,
     activePlayer: state?.activePlayer ?? -1,
     phase: state?.phase ?? 'waiting',
     onTimeout: handleTimeout,
@@ -208,7 +231,7 @@ export function GameProvider({ children, service, mode, repository, initialChips
 
   const value: GameContextValue = {
     state,
-    mode,
+    mode: effectiveMode,
     viewingSeat,
     service,
     showdownResult,
@@ -219,7 +242,7 @@ export function GameProvider({ children, service, mode, repository, initialChips
     rematch,
     preAction,
     setPreAction,
-    timerRemainingMs: mode === 'debug' ? null : (isRunning ? remainingMs : null),
+    timerRemainingMs: effectiveMode === 'debug' ? null : (isRunning ? remainingMs : null),
     timerDurationMs: durationMs,
   };
 
