@@ -36,7 +36,8 @@ Every domain follows the same pattern:
 tests/<domain>/
 ├── *.test.ts          ← unit tests
 └── integration/       ← integration tests
-    └── *.integration.test.ts
+    ├── *.integration.test.ts
+    └── helpers/       ← shared test utilities (optional)
 ```
 
 `tests/integration/` remains a dedicated location for cross-layer integration tests (tests that span multiple domains such as BLE + Service + Persistence).
@@ -79,9 +80,10 @@ tests/
 ├── persistence/               ← unit (3)
 ├── integration/               ← cross-layer integration (3)
 └── ui/
-    ├── components/            ← unit (17)
+    ├── components/            ← unit (20)
     ├── contexts/              ← unit (1)
-    └── integration/           ← integration (5)
+    └── integration/           ← integration (7)
+        └── helpers/
 ```
 
 ## Success Criteria
