@@ -45,6 +45,7 @@ coverage/
 
 # Playwright
 test-results/
+.playwright-mcp/
 
 # Build outputs
 *.jks
