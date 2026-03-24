@@ -33,9 +33,14 @@ status: approved
 | 2 | 正常系 | `GameProvider` を wrapper として渡したとき、コンテキスト値（`mode`, `service`）を返す |
 
 **実装方針:**
-- `renderHook` + `wrapper` で `GameProvider` を注入
-- 正常系は `createMockService`（`tests/ui/helpers/renderWithGame.tsx` の既存ヘルパー）を使用
-- 異常系では React の error boundary ログを抑制するため `console.error` を一時的にモック
+
+- **異常系のアサーション:** `renderHook` はフックが throw した場合にその例外を呼び出し元に再スローするため、`expect(() => renderHook(() => useGame())).toThrow('useGame must be used within a GameProvider')` で検証する。`console.error` のモックは不要（`renderHook` は error boundary を経由しない）。
+
+- **正常系のセットアップ:**
+  - `GameProvider`（`src/contexts/GameContext`）と `createMockService`（`tests/ui/helpers/renderWithGame.tsx`）をインポートする
+  - `wrapper` として `GameProvider` に最低限必要な props（`service` と `mode="debug"`）を渡す
+  - `repository` は省略可能（`GameProvider` の optional prop）であり、`usePersistence` の追加モックは不要
+  - `result.current.mode === 'debug'` および `result.current.service === service` を検証する
 
 ---
 
@@ -56,17 +61,19 @@ status: approved
 | 7 | 独立性 | ホストをクリアしてもクライアントの値が保持される |
 
 **実装方針:**
-- `transportRegistry.ts` はモジュールレベルの変数で状態を保持するため、`afterEach` で `clearHostTransport` / `clearClientTransport` を呼んでテスト間の状態を初期化する
+
+- `transportRegistry.ts` はモジュールレベルの変数で状態を保持するため、`afterEach` で `clearHostTransport` / `clearClientTransport` を呼んでテスト間（このファイル内）の状態を初期化する。Jest のモジュールキャッシュにより状態は同一ワーカー内で保持されるが、このファイル内のテストは `afterEach` クリーンアップで十分に分離される。`jest.resetModules()` や `jest.isolateModules()` は不要。
 - モックは `{} as BleHostTransport` / `{} as BleClientTransport` のキャストを使用（実装詳細は不要）
 
 ---
 
-### 3. `tests/README.md` 更新
+### 3. `tests/README.md` 更新（4箇所）
 
-| セクション | 変更内容 |
+| 箇所 | 変更内容 |
 |---|---|
-| Hooks Unit テスト | ファイル数 1 → 2、`useGame.test.tsx` のエントリ追加 |
-| BLE Unit テスト | ファイル数 11 → 12、`transportRegistry.test.ts` のエントリ追加 |
+| ディレクトリ構成のツリー内 `ble/` の行 | `# BLEテスト（11ファイル）` → `# BLEテスト（12ファイル）` |
+| Hooks Unit テスト セクション | ファイル数 1 → 2、`useGame.test.tsx` のエントリ追加 |
+| BLE Unit テスト セクション | ファイル数 11 → 12、`transportRegistry.test.ts` のエントリ追加 |
 | テスト数サマリー | Hooks 1→2、BLE 11→12、合計 58→60 |
 
 ---
