@@ -5,6 +5,9 @@ import { GameContext, GameProvider } from '../../../src/contexts/GameContext';
 import { useGame } from '../../../src/hooks/useGame';
 import { LocalGameService } from '../../../src/services/LocalGameService';
 import { createMockService, createMockGameState } from '../helpers/renderWithGame';
+import { BleSpectatorGameService } from '../../../src/services/ble/BleSpectatorGameService';
+import { MockBleClientTransport } from '../../../src/services/ble/MockBleTransport';
+import { GameState } from '../../../src/gameEngine';
 
 function TestConsumer() {
   const { state, mode, viewingSeat } = useGame();
@@ -205,5 +208,100 @@ describe('action timer integration', () => {
       ([, action]: [number, any]) => action.action === 'check' || action.action === 'fold',
     );
     expect(timeoutCalls).toHaveLength(0);
+  });
+});
+
+// Helper: creates a mock service that allows triggering state updates in tests
+function createNotifiableService() {
+  let _subscriber: ((state: GameState) => void) | null = null;
+  const service = {
+    ...createMockService({
+      subscribe: jest.fn((cb: (state: GameState) => void) => {
+        _subscriber = cb;
+        return () => { _subscriber = null; };
+      }),
+    }),
+    _notifyListeners: (state: GameState) => { _subscriber?.(state); },
+  };
+  return service;
+}
+
+function EffectiveModeConsumer() {
+  const { mode } = useGame();
+  return <Text testID="mode">{mode}</Text>;
+}
+
+describe('GameContext — ble-spectator mode', () => {
+  it('exposes ble-spectator mode when mode prop is ble-spectator', () => {
+    const transport = new MockBleClientTransport();
+    const service = new BleSpectatorGameService(transport);
+    const { getByTestId } = render(
+      <GameProvider service={service} mode="ble-spectator">
+        <EffectiveModeConsumer />
+      </GameProvider>
+    );
+    expect(getByTestId('mode').props.children).toBe('ble-spectator');
+  });
+});
+
+describe('GameContext — auto-transition to ble-spectator', () => {
+  it('transitions effectiveMode when mySeat player status becomes out', async () => {
+    const mockService = createNotifiableService();
+    const { getByTestId } = render(
+      <GameProvider service={mockService} mode="ble-client" mySeat={1}>
+        <EffectiveModeConsumer />
+      </GameProvider>
+    );
+    expect(getByTestId('mode').props.children).toBe('ble-client');
+
+    const state = createMockGameState({
+      players: [
+        { seat: 0, name: 'Host', chips: 1000, status: 'active' as const, bet: 0, cards: [] },
+        { seat: 1, name: 'Alice', chips: 0, status: 'out' as const, bet: 0, cards: [] },
+        { seat: 2, name: 'Bob', chips: 1000, status: 'active' as const, bet: 0, cards: [] },
+      ],
+    });
+    act(() => { mockService._notifyListeners(state); });
+
+    expect(getByTestId('mode').props.children).toBe('ble-spectator');
+  });
+
+  it('does NOT transition when a different player becomes out', async () => {
+    const mockService = createNotifiableService();
+    const { getByTestId } = render(
+      <GameProvider service={mockService} mode="ble-client" mySeat={0}>
+        <EffectiveModeConsumer />
+      </GameProvider>
+    );
+
+    const state = createMockGameState({
+      players: [
+        { seat: 0, name: 'Host', chips: 1000, status: 'active' as const, bet: 0, cards: [] },
+        { seat: 1, name: 'Alice', chips: 0, status: 'out' as const, bet: 0, cards: [] },
+        { seat: 2, name: 'Bob', chips: 1000, status: 'active' as const, bet: 0, cards: [] },
+      ],
+    });
+    act(() => { mockService._notifyListeners(state); });
+
+    expect(getByTestId('mode').props.children).toBe('ble-client');
+  });
+
+  it('does NOT transition in ble-host mode', async () => {
+    const mockService = createNotifiableService();
+    const { getByTestId } = render(
+      <GameProvider service={mockService} mode="ble-host">
+        <EffectiveModeConsumer />
+      </GameProvider>
+    );
+
+    const state = createMockGameState({
+      players: [
+        { seat: 0, name: 'Host', chips: 0, status: 'out' as const, bet: 0, cards: [] },
+        { seat: 1, name: 'Alice', chips: 1000, status: 'active' as const, bet: 0, cards: [] },
+      ],
+    });
+    act(() => { mockService._notifyListeners(state); });
+
+    expect(getByTestId('mode').props.children).toBe('ble-host');
   });
 });

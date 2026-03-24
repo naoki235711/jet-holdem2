@@ -155,3 +155,32 @@ describe('game over buttons', () => {
     expect(getByTestId('rematch-btn')).toBeTruthy();
   });
 });
+
+describe('ble-spectator mode', () => {
+  it('shows waiting text (not next-round button) when mode is ble-spectator and game not over', () => {
+    const state = createMockGameState({ phase: 'roundEnd' });
+    // Multiple players with chips (game not over)
+    const { queryByTestId, getByText } = renderWithGame(<ResultOverlay />, {
+      state,
+      mode: 'ble-spectator',
+    });
+    expect(queryByTestId('next-round-btn')).toBeNull();
+    expect(getByText('次のラウンドを待っています...')).toBeTruthy();
+  });
+
+  it('shows ロビーに戻る but not 再戦 when mode is ble-spectator and game over', () => {
+    const state = createMockGameState({
+      phase: 'roundEnd',
+      players: [
+        { seat: 0, name: 'Host', chips: 3000, status: 'active' as const, bet: 0, cards: [] },
+        { seat: 1, name: 'Alice', chips: 0, status: 'out' as const, bet: 0, cards: [] },
+      ],
+    });
+    const { queryByTestId } = renderWithGame(<ResultOverlay />, {
+      state,
+      mode: 'ble-spectator',
+    });
+    expect(queryByTestId('rematch-btn')).toBeNull();
+    expect(queryByTestId('back-to-lobby-btn')).toBeTruthy();
+  });
+});

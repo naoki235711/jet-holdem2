@@ -11,10 +11,14 @@ jest.mock('expo-router', () => ({
 const mockClient = {
   startScanning: jest.fn().mockResolvedValue(undefined),
   connectToHost: jest.fn().mockResolvedValue(undefined),
+  connectAndWait: jest.fn().mockResolvedValue(undefined),
+  join: jest.fn(),
+  spectate: jest.fn(),
   setReady: jest.fn(),
   disconnect: jest.fn().mockResolvedValue(undefined),
   onHostDiscovered: jest.fn(),
   onJoinResult: jest.fn(),
+  onSpectateResult: jest.fn(),
   onPlayersChanged: jest.fn(),
   onGameStart: jest.fn(),
   onDisconnected: jest.fn(),
@@ -66,7 +70,7 @@ describe('BleJoinLobby', () => {
     });
 
     fireEvent.press(screen.getByText('Room A'));
-    expect(mockClient.connectToHost).toHaveBeenCalledWith('host-1');
+    expect(mockClient.connectAndWait).toHaveBeenCalledWith('host-1');
   });
 
   it('shows waiting state after successful join', async () => {
@@ -156,5 +160,65 @@ describe('BleJoinLobby', () => {
     });
 
     expect(screen.getByText('ホストが切断しました')).toBeTruthy();
+  });
+
+  it('shows roleSelect screen after connecting with ゲームに参加 and 観戦する buttons', async () => {
+    render(<BleJoinLobby playerName="Alice" />);
+    const onHostDiscovered = mockClient.onHostDiscovered.mock.calls[0][0];
+    await act(async () => { onHostDiscovered('host-1', 'Host1'); });
+
+    await act(async () => { fireEvent.press(screen.getByText('Host1')); });
+    await act(async () => {}); // flush connectAndWait promise
+
+    expect(screen.getByText('ゲームに参加')).toBeTruthy();
+    expect(screen.getByText('観戦する')).toBeTruthy();
+  });
+
+  it('calls join() when ゲームに参加 is pressed', async () => {
+    render(<BleJoinLobby playerName="Alice" />);
+    const onHostDiscovered = mockClient.onHostDiscovered.mock.calls[0][0];
+    await act(async () => { onHostDiscovered('host-1', 'Host1'); });
+    await act(async () => { fireEvent.press(screen.getByText('Host1')); });
+    await act(async () => {});
+
+    fireEvent.press(screen.getByText('ゲームに参加'));
+    expect(mockClient.join).toHaveBeenCalled();
+  });
+
+  it('calls spectate() when 観戦する is pressed', async () => {
+    render(<BleJoinLobby playerName="Alice" />);
+    const onHostDiscovered = mockClient.onHostDiscovered.mock.calls[0][0];
+    await act(async () => { onHostDiscovered('host-1', 'Host1'); });
+    await act(async () => { fireEvent.press(screen.getByText('Host1')); });
+    await act(async () => {});
+
+    fireEvent.press(screen.getByText('観戦する'));
+    expect(mockClient.spectate).toHaveBeenCalled();
+  });
+
+  it('navigates to /game with mode=ble-spectator after spectate accepted', async () => {
+    render(<BleJoinLobby playerName="Alice" />);
+    const onHostDiscovered = mockClient.onHostDiscovered.mock.calls[0][0];
+    await act(async () => { onHostDiscovered('host-1', 'Host1'); });
+    await act(async () => { fireEvent.press(screen.getByText('Host1')); });
+    await act(async () => {});
+
+    fireEvent.press(screen.getByText('観戦する'));
+
+    // Simulate spectateResponse accepted
+    const onSpectateResult = mockClient.onSpectateResult.mock.calls[0][0];
+    await act(async () => {
+      onSpectateResult({ accepted: true, gameSettings: { sb: 5, bb: 10, initialChips: 1000 } });
+    });
+
+    // Simulate gameStart (spectator still gets onGameStart from LobbyClient)
+    const onGameStart = mockClient.onGameStart.mock.calls[0][0];
+    await act(async () => {
+      onGameStart({ blinds: { sb: 5, bb: 10 }, initialChips: 1000 });
+    });
+
+    expect(mockPush).toHaveBeenCalledWith(expect.objectContaining({
+      params: expect.objectContaining({ mode: 'ble-spectator' }),
+    }));
   });
 });

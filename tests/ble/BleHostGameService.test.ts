@@ -333,4 +333,52 @@ describe('BleHostGameService', () => {
       // If game ended (roundEnd), frozen-turn scenario didn't arise — that's OK
     });
   });
+
+  describe('spectator support', () => {
+    it('ignores playerAction from spectator clientId', () => {
+      const svc = new BleHostGameService(transport, new Map([['client1', 1], ['client2', 2]]), ['spec-1']);
+      svc.startGame(['Host', 'Alice', 'Bob'], { sb: 5, bb: 10 }, 1000);
+      svc.startRound();
+
+      const actionsBefore = transport.sentMessages.length;
+
+      // Send fold action from spectator client
+      const cm = new ChunkManager();
+      const chunks = cm.encode(JSON.stringify({ type: 'playerAction', action: 'fold' }));
+      for (const chunk of chunks) {
+        transport.simulateMessageReceived('spec-1', 'playerAction', chunk);
+      }
+
+      // No additional broadcasts should have occurred (spectator action ignored)
+      expect(transport.sentMessages.length).toBe(actionsBefore);
+    });
+
+    it('skips freeze logic when spectator disconnects', () => {
+      const svc = new BleHostGameService(transport, new Map([['client1', 1], ['client2', 2]]), ['spec-1']);
+      svc.startGame(['Host', 'Alice', 'Bob'], { sb: 5, bb: 10 }, 1000);
+      svc.startRound();
+      const msgsBefore = transport.sentMessages.length;
+
+      // Spectator disconnect should not trigger frozenSeats or any broadcast
+      transport.simulateClientDisconnected('spec-1');
+
+      // No broadcast should have been triggered
+      expect(transport.sentMessages.length).toBe(msgsBefore);
+    });
+
+    it('addSpectator sends current stateUpdate to the new spectator', () => {
+      const svc = new BleHostGameService(transport, new Map([['client1', 1]]));
+      svc.startGame(['Host', 'Alice'], { sb: 5, bb: 10 }, 1000);
+      svc.startRound();
+
+      const msgsBefore = transport.sentMessages.length;
+      svc.addSpectator('spec-new');
+
+      // Should have sent at least one message to spec-new
+      const sentToSpec = transport.sentMessages
+        .slice(msgsBefore)
+        .filter((m: any) => m.clientId === 'spec-new');
+      expect(sentToSpec.length).toBeGreaterThan(0);
+    });
+  });
 });

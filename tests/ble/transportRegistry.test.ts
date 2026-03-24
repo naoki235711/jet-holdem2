@@ -5,8 +5,13 @@ import {
   setClientTransport,
   getClientTransport,
   clearClientTransport,
+  setLobbyHost,
+  getLobbyHost,
+  clearLobbyHost,
 } from '../../src/services/ble/transportRegistry';
 import { BleHostTransport, BleClientTransport } from '../../src/services/ble/BleTransport';
+import { LobbyHost } from '../../src/services/ble/LobbyHost';
+import { MockBleHostTransport } from '../../src/services/ble/MockBleTransport';
 
 describe('transportRegistry', () => {
   afterEach(() => {
@@ -58,5 +63,28 @@ describe('transportRegistry', () => {
     clearHostTransport();
     expect(getHostTransport()).toBeNull();
     expect(getClientTransport()).toBe(client);
+  });
+});
+
+describe('lobbyHost registry', () => {
+  afterEach(() => clearLobbyHost());
+
+  it('returns null when not set', () => {
+    expect(getLobbyHost()).toBeNull();
+  });
+
+  it('returns the set LobbyHost', () => {
+    const transport = new MockBleHostTransport();
+    const host = new LobbyHost(transport, 'Host');
+    setLobbyHost(host);
+    expect(getLobbyHost()).toBe(host);
+  });
+
+  it('returns null after clear', () => {
+    const transport = new MockBleHostTransport();
+    const host = new LobbyHost(transport, 'Host');
+    setLobbyHost(host);
+    clearLobbyHost();
+    expect(getLobbyHost()).toBeNull();
   });
 });

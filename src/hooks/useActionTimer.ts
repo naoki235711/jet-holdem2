@@ -5,7 +5,7 @@ export const ACTION_TIMER_DURATION_MS = 30_000;
 const TICK_INTERVAL_MS = 100;
 
 interface UseActionTimerOptions {
-  mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client';
+  mode: 'hotseat' | 'debug' | 'ble-host' | 'ble-client' | 'ble-spectator';
   activePlayer: number;
   phase: Phase;
   onTimeout: () => void;

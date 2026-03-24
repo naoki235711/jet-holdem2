@@ -48,6 +48,17 @@ export function ActionButtons() {
 
   if (!state || state.phase === 'roundEnd' || state.phase === 'showdown') return null;
 
+  // Spectator: show indicator instead of action buttons
+  if (mode === 'ble-spectator') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.spectatorIndicator}>
+          <Text style={styles.spectatorText}>観戦中</Text>
+        </View>
+      </View>
+    );
+  }
+
   // Pre-action bar: show only in BLE mode when not my turn
   if (!isMyTurn && isBleMode) {
     const myPlayer = state.players.find(p => p.seat === viewingSeat);
@@ -214,4 +225,13 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   buttonText: { color: Colors.text, fontWeight: 'bold', fontSize: 14 },
   error: { color: '#EF4444', fontSize: 12, textAlign: 'center', marginTop: 4 },
+  spectatorIndicator: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  spectatorText: {
+    color: Colors.subText,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

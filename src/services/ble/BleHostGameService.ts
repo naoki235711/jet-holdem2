@@ -17,11 +17,16 @@ export class BleHostGameService implements GameService {
   private hostSeat: number = 0;
   private frozenSeats = new Map<number, ReturnType<typeof setTimeout>>();
   private listeners = new Set<(state: GameState) => void>();
+  private spectatorClientIds = new Set<string>();
 
   constructor(
     private transport: BleHostTransport,
     private clientSeatMap: Map<string, number>,
+    spectatorClientIds?: string[],
   ) {
+    if (spectatorClientIds) {
+      spectatorClientIds.forEach(id => this.spectatorClientIds.add(id));
+    }
     this.transport.onMessageReceived((clientId, charId, data) => {
       this.handleClientMessage(clientId, charId, data);
     });
@@ -196,6 +201,7 @@ export class BleHostGameService implements GameService {
 
   private handleClientMessage(clientId: string, charId: string, data: Uint8Array): void {
     if (charId !== 'playerAction') return;
+    if (this.spectatorClientIds.has(clientId)) return; // ignore spectators
 
     const json = this.chunkManager.decode(clientId, data);
     if (!json) return;
@@ -255,6 +261,10 @@ export class BleHostGameService implements GameService {
   // --- Private: Disconnection handling ---
 
   private handleClientDisconnected(clientId: string): void {
+    if (this.spectatorClientIds.has(clientId)) {
+      this.spectatorClientIds.delete(clientId);
+      return; // no freeze processing for spectators
+    }
     const seat = this.clientSeatMap.get(clientId);
     if (seat === undefined) return;
 
@@ -281,5 +291,40 @@ export class BleHostGameService implements GameService {
     if (state.activePlayer >= 0 && this.frozenSeats.has(state.activePlayer)) {
       this.handleAction(state.activePlayer, { action: 'fold' });
     }
+  }
+
+  addSpectator(clientId: string): void {
+    this.spectatorClientIds.add(clientId);
+    if (this.gameLoop) {
+      this.sendCurrentStateTo(clientId);
+    }
+  }
+
+  private sendCurrentStateTo(clientId: string): void {
+    if (!this.gameLoop) return;
+    const state = this.gameLoop.getState();
+    const msg: GameHostMessage = {
+      type: 'stateUpdate',
+      seq: state.seq,
+      phase: state.phase,
+      community: state.community,
+      pots: state.pots,
+      currentBet: state.currentBet,
+      activePlayer: state.activePlayer,
+      dealer: state.dealer,
+      blinds: state.blinds,
+      players: state.players.map(p => ({
+        seat: p.seat,
+        name: p.name,
+        chips: p.chips,
+        status: p.status,
+        bet: p.bet,
+        cards: [] as Card[],
+      })),
+      minRaiseSize: this.gameLoop.getMinRaiseSize(),
+      frozenSeats: Array.from(this.frozenSeats.keys()),
+    };
+    if (state.foldWin) msg.foldWin = state.foldWin;
+    this.sendToClient(clientId, 'gameState', msg);
   }
 }

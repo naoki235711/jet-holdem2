@@ -41,6 +41,18 @@ describe('LobbyClient', () => {
       const sent = decodeLastSent(transport);
       expect(sent).toEqual({ type: 'join', protocolVersion: 1, playerName: 'Alice' });
     });
+
+    it('connectAndWait connects but does not auto-send join', async () => {
+      await client.connectAndWait('host-1');
+      const joinMessages = transport.sentMessages.filter((m: any) => {
+        const cm = new ChunkManager();
+        const json = cm.decode('any', m.data);
+        if (!json) return false;
+        const parsed = JSON.parse(json);
+        return parsed.type === 'join';
+      });
+      expect(joinMessages).toHaveLength(0);
+    });
   });
 
   describe('joinResponse handling', () => {
@@ -244,6 +256,62 @@ describe('LobbyClient', () => {
         })),
       );
       expect(client.mySeat).toBe(2);
+    });
+  });
+
+  describe('spectate flow', () => {
+    it('sends spectate message to host after connecting', async () => {
+      await client.connectToHost('host-1');
+      client.spectate();
+
+      // Check transport received a spectate message
+      const sent = transport.sentMessages.find((m: any) => {
+        const cm = new ChunkManager();
+        const json = cm.decode('any', m.data);
+        if (!json) return false;
+        const parsed = JSON.parse(json);
+        return parsed.type === 'spectate';
+      });
+      expect(sent).toBeTruthy();
+    });
+
+    it('calls onSpectateResult with accepted result', async () => {
+      const cb = jest.fn();
+      client.onSpectateResult(cb);
+      await client.connectToHost('host-1');
+      client.spectate();
+
+      // Simulate host responding with spectateResponse (accepted)
+      transport.simulateMessageReceived('lobby', encodeMessage(JSON.stringify({
+        type: 'spectateResponse',
+        accepted: true,
+        spectatorId: 0,
+        players: [{ seat: 0, name: 'Host', ready: true }],
+        gameSettings: { sb: 5, bb: 10, initialChips: 1000 },
+      })));
+
+      expect(cb).toHaveBeenCalledWith({ accepted: true, gameSettings: { sb: 5, bb: 10, initialChips: 1000 } });
+    });
+
+    it('calls onSpectateResult with rejected result', async () => {
+      const cb = jest.fn();
+      client.onSpectateResult(cb);
+      await client.connectToHost('host-1');
+      client.spectate();
+
+      transport.simulateMessageReceived('lobby', encodeMessage(JSON.stringify({
+        type: 'spectateResponse',
+        accepted: false,
+        reason: 'Spectator slots full',
+      })));
+
+      expect(cb).toHaveBeenCalledWith({ accepted: false, reason: 'Spectator slots full' });
+    });
+
+    it('does nothing if spectate() called before connecting', () => {
+      // client starts in 'idle' state — calling spectate should be a no-op
+      client.spectate();
+      expect(transport.sentMessages).toHaveLength(0);
     });
   });
 });
