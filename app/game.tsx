@@ -118,7 +118,8 @@ function GameView() {
       state.phase !== 'showdown'
     ) {
       const player = state.players.find(p => p.seat === currentActive);
-      if (player) {
+      // Only show PassDeviceScreen if player is not a bot
+      if (player && !player.isBot) {
         setNextPlayerName(player.name);
         setShowPassScreen(true);
       }
