@@ -53,6 +53,7 @@ export class LobbyHost {
     await this.transport.stopAdvertising();
     this.state = 'idle';
     this.chunkManager.clear();
+    this.spectators.clear();
   }
 
   startGame(): void {
@@ -75,13 +76,6 @@ export class LobbyHost {
       blinds,
       initialChips: this.gameSettings.initialChips,
     });
-    for (const clientId of this.spectators.keys()) {
-      this.sendToClient(clientId, {
-        type: 'gameStart',
-        blinds: { sb: this.gameSettings.sb, bb: this.gameSettings.bb },
-        initialChips: this.gameSettings.initialChips,
-      });
-    }
     this._onGameStart?.(blinds);
   }
 

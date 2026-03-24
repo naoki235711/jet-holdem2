@@ -409,7 +409,8 @@ describe('LobbyHost', () => {
       host.startGame();
       await flushPromises();
 
-      const msgs = decodeAllFrom(transport, 'spec1');
+      // gameStart is sent via sendToAll (clientId '__all__'), which reaches spectators too
+      const msgs = decodeAllFrom(transport, '__all__');
       const gameStart = msgs.find((m: any) => m.type === 'gameStart');
       expect(gameStart).toBeTruthy();
     });
