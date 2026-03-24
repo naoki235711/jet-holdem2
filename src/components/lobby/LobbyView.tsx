@@ -22,6 +22,7 @@ export function LobbyView() {
   const [bb, setBb] = useState('10');
   const [mode, setMode] = useState<'hotseat' | 'debug'>('hotseat');
   const [resetFeedback, setResetFeedback] = useState(false);
+  const [botCount, setBotCount] = useState(0);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Restore saved settings on mount
@@ -79,6 +80,7 @@ export function LobbyView() {
         sb,
         bb,
         mode,
+        botCount: String(botCount),
         ...(hasChips ? { playerChips: JSON.stringify(chipsByPlayer) } : {}),
       },
     });
@@ -210,6 +212,26 @@ export function LobbyView() {
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.label}>Bot人数</Text>
+          <View style={styles.botCountRow}>
+            <TouchableOpacity
+              testID="bot-count-minus"
+              style={styles.botCountBtn}
+              onPress={() => setBotCount(c => Math.max(0, c - 1))}
+            >
+              <Text style={styles.botCountBtnText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.botCountValue}>{botCount}</Text>
+            <TouchableOpacity
+              testID="bot-count-plus"
+              style={styles.botCountBtn}
+              // 合計9席を超えない: 最大 = 9 - 人間プレイヤー数
+              onPress={() => setBotCount(c => Math.min(9 - playerCount, c + 1))}
+            >
+              <Text style={styles.botCountBtnText}>＋</Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity testID="chip-reset-btn" style={styles.resetBtn} onPress={handleChipReset}>
             <Text style={styles.resetBtnText}>チップをリセット</Text>
           </TouchableOpacity>
@@ -304,4 +326,12 @@ const styles = StyleSheet.create({
   },
   resetBtnText: { color: Colors.subText, fontSize: 14 },
   resetFeedback: { color: Colors.pot, fontSize: 12, textAlign: 'center', marginTop: 4 },
+  botCountRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 8 },
+  botCountBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    borderWidth: 2, borderColor: Colors.subText,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  botCountBtnText: { color: Colors.text, fontSize: 20, fontWeight: 'bold' },
+  botCountValue: { color: Colors.text, fontSize: 24, fontWeight: 'bold', minWidth: 32, textAlign: 'center' },
 });

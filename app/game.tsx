@@ -163,11 +163,13 @@ export default function GameScreen() {
     seat?: string;
     clientSeatMap?: string;
     playerChips?: string;  // JSON Record<string, number>
+    botCount?: string;
   }>();
 
   const mode = params.mode ?? 'debug';
   const initialChips = Number(params.initialChips ?? '1000');
   const blinds = { sb: Number(params.sb ?? '5'), bb: Number(params.bb ?? '10') };
+  const botCount = Number(params.botCount ?? '0');
 
   const playerNames = React.useMemo<string[]>(() => {
     const parsed: string[] = JSON.parse(params.playerNames ?? '[]');
@@ -197,7 +199,7 @@ export default function GameScreen() {
       ? JSON.parse(params.playerChips)
       : undefined;
     const svc = new LocalGameService();
-    svc.startGame(playerNames, blinds, initialChips, playerChipsMap);
+    svc.startGame(playerNames, blinds, initialChips, playerChipsMap, botCount);
     svc.startRound();
     return svc;
   });
@@ -222,6 +224,7 @@ export default function GameScreen() {
       initialChips={initialChips}
       blinds={blinds}
       playerNames={playerNames}
+      botCount={botCount}
     >
       <GameView />
     </GameProvider>
