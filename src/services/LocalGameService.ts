@@ -84,16 +84,20 @@ export class LocalGameService implements GameService {
     this.botSeats.clear();
 
     const botNames = Array.from({ length: botCount }, (_, i) => `Bot ${i + 1}`);
-    const allNames = fisherYatesShuffle([...playerNames, ...botNames]);
+    const allEntries: Array<{ name: string; isBot: boolean }> = [
+      ...playerNames.map(name => ({ name, isBot: false })),
+      ...botNames.map(name => ({ name, isBot: true })),
+    ];
+    const shuffled = fisherYatesShuffle(allEntries);
 
-    const players: Player[] = allNames.map((name, i) => ({
+    const players: Player[] = shuffled.map((entry, i) => ({
       seat: i,
-      name,
-      chips: savedChips?.[name] ?? initialChips,
+      name: entry.name,
+      chips: savedChips?.[entry.name] ?? initialChips,
       status: 'active' as PlayerStatus,
       bet: 0,
       cards: [],
-      isBot: botNames.includes(name),
+      isBot: entry.isBot,
     }));
 
     players.filter(p => p.isBot).forEach(p => this.botSeats.add(p.seat));
