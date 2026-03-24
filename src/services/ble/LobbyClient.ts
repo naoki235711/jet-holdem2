@@ -77,6 +77,7 @@ export class LobbyClient {
   }
 
   spectate(): void {
+    if (this.state === 'idle' || this.state === 'scanning') return;
     this.sendToHost({ type: 'spectate', protocolVersion: PROTOCOL_VERSION, spectatorName: this.playerName });
   }
 

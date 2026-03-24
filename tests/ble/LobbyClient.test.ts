@@ -295,5 +295,11 @@ describe('LobbyClient', () => {
 
       expect(cb).toHaveBeenCalledWith({ accepted: false, reason: 'Spectator slots full' });
     });
+
+    it('does nothing if spectate() called before connecting', () => {
+      // client starts in 'idle' state — calling spectate should be a no-op
+      client.spectate();
+      expect(transport.sentMessages).toHaveLength(0);
+    });
   });
 });
