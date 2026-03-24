@@ -80,7 +80,7 @@ describe('rematch', () => {
       fireEvent.press(getByTestId('rematch-btn'));
     });
 
-    expect(startGameSpy).toHaveBeenCalledWith(['A', 'B'], { sb: 5, bb: 10 }, 1000);
+    expect(startGameSpy).toHaveBeenCalledWith(['A', 'B'], { sb: 5, bb: 10 }, 1000, undefined, 0);
     expect(startRoundSpy).toHaveBeenCalled();
     expect(getByTestId('phase').props.children).toBe('preflop');
   });
