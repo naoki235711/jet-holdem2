@@ -35,6 +35,7 @@ export interface Player {
   status: PlayerStatus;
   bet: number;         // Current round bet
   cards: Card[];       // Hole cards (2 cards)
+  isBot?: boolean;     // true if bot player, false or undefined if human
 }
 
 export type Phase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'roundEnd' | 'gameOver';
