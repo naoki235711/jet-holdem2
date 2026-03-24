@@ -43,6 +43,9 @@ export function PlayerSeat({ seat }: PlayerSeatProps) {
         ]}
       >
         <Text style={styles.name}>{player.name}</Text>
+        {player.isBot && (
+          <Text style={styles.botBadge} testID={`bot-badge-${seat}`}>BOT</Text>
+        )}
 
         <View style={styles.cards}>
           {player.cards.map((card, i) => (
@@ -111,6 +114,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 2,
     marginVertical: 4,
+  },
+  botBadge: {
+    color: '#93C5FD',
+    fontSize: 9,
+    fontWeight: 'bold',
+    backgroundColor: 'rgba(59,130,246,0.2)',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    marginBottom: 2,
   },
   statusBadge: {
     color: Colors.text,
