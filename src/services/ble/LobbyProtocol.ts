@@ -14,14 +14,18 @@ export type GameSettings = {
 
 export type LobbyClientMessage =
   | { type: 'join'; protocolVersion: number; playerName: string }
-  | { type: 'ready' };
+  | { type: 'ready' }
+  | { type: 'spectate'; protocolVersion: number; spectatorName: string };
 
 export type LobbyHostMessage =
   | { type: 'joinResponse'; accepted: true; seat: number; players: LobbyPlayer[]; gameSettings: GameSettings }
   | { type: 'joinResponse'; accepted: false; reason: string }
   | { type: 'playerUpdate'; players: LobbyPlayer[] }
   | { type: 'gameStart'; blinds: { sb: number; bb: number }; initialChips: number }
-  | { type: 'lobbyClosed'; reason: string };
+  | { type: 'lobbyClosed'; reason: string }
+  | { type: 'spectateResponse'; accepted: true; spectatorId: number; players: LobbyPlayer[]; gameSettings: GameSettings }
+  | { type: 'spectateResponse'; accepted: false; reason: string }
+  | { type: 'spectatorUpdate'; spectatorCount: number };
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -37,6 +41,10 @@ export function validateClientMessage(data: unknown): LobbyClientMessage | null 
       return { type: 'join', protocolVersion: PROTOCOL_VERSION, playerName: data.playerName };
     case 'ready':
       return { type: 'ready' };
+    case 'spectate':
+      if (data.protocolVersion !== PROTOCOL_VERSION) return null;
+      if (typeof data.spectatorName !== 'string' || data.spectatorName === '') return null;
+      return { type: 'spectate', protocolVersion: PROTOCOL_VERSION, spectatorName: data.spectatorName as string };
     default:
       return null;
   }
@@ -102,6 +110,27 @@ export function validateHostMessage(data: unknown): LobbyHostMessage | null {
     case 'lobbyClosed':
       if (typeof data.reason !== 'string') return null;
       return { type: 'lobbyClosed', reason: data.reason };
+    case 'spectateResponse':
+      if (data.accepted === true) {
+        if (typeof data.spectatorId !== 'number') return null;
+        if (!isLobbyPlayerArray(data.players)) return null;
+        if (!isValidGameSettings(data.gameSettings)) return null;
+        return {
+          type: 'spectateResponse',
+          accepted: true,
+          spectatorId: data.spectatorId as number,
+          players: data.players as LobbyPlayer[],
+          gameSettings: data.gameSettings as GameSettings,
+        };
+      }
+      if (data.accepted === false) {
+        if (typeof data.reason !== 'string') return null;
+        return { type: 'spectateResponse', accepted: false, reason: data.reason as string };
+      }
+      return null;
+    case 'spectatorUpdate':
+      if (typeof data.spectatorCount !== 'number') return null;
+      return { type: 'spectatorUpdate', spectatorCount: data.spectatorCount as number };
     default:
       return null;
   }

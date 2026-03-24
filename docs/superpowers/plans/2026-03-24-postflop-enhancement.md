@@ -132,7 +132,7 @@ export function estimateEquity(
   holeCards: Card[],
   community: Card[],
   numOpponents: number,
-  numSimulations: number = 500
+  numSimulations: number = 5000
 ): number {
   if (numOpponents === 0) return 1.0;
 

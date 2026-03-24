@@ -3,7 +3,7 @@
 import React from 'react';
 import { screen, fireEvent } from '@testing-library/react-native';
 import { ActionButtons } from '../../../src/components/actions/ActionButtons';
-import { renderWithGame, createMockGameState } from '../helpers/renderWithGame';
+import { renderWithGame, createMockGameState, createMockService } from '../helpers/renderWithGame';
 
 describe('ActionButtons', () => {
   it('shows FOLD, CHECK, RAISE when no bet to call', () => {
@@ -269,5 +269,19 @@ describe('ActionButtons', () => {
     // In debug mode, actingSeat === activePlayer, so isMyTurn is always true
     // PreActionBar should not appear
     expect(screen.queryByText('Check/Fold')).toBeNull();
+  });
+
+  it('shows 観戦中 indicator when mode is ble-spectator', () => {
+    const mockService = createMockService();
+    const state = createMockGameState({ phase: 'preflop', activePlayer: 1 });
+    (mockService.getState as jest.Mock).mockReturnValue(state);
+
+    const { getByText, queryByTestId } = renderWithGame(<ActionButtons />, {
+      service: mockService,
+      mode: 'ble-spectator',
+    });
+
+    expect(getByText('観戦中')).toBeTruthy();
+    expect(queryByTestId('fold-btn')).toBeNull();
   });
 });

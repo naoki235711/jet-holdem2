@@ -330,4 +330,131 @@ describe('LobbyHost', () => {
       expect(seatMap.get('client-1')).toBe(1);
     });
   });
+
+  describe('spectator management', () => {
+    it('accepts spectate and sends spectateResponse', async () => {
+      await host.start();
+      transport.simulateClientConnected('spec1');
+      transport.simulateMessageReceived('spec1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'spectate', protocolVersion: 1, spectatorName: 'Watcher' }))
+      );
+      await flushPromises();
+
+      const resp = decodeLastFrom(transport, 'spec1');
+      expect(resp).toMatchObject({ type: 'spectateResponse', accepted: true, spectatorId: 0 });
+    });
+
+    it('rejects spectate when spectator slots are full (max 4)', async () => {
+      await host.start();
+      for (let i = 0; i < 4; i++) {
+        transport.simulateClientConnected(`spec${i}`);
+        transport.simulateMessageReceived(`spec${i}`, 'lobby',
+          encodeMessage(JSON.stringify({ type: 'spectate', protocolVersion: 1, spectatorName: `W${i}` }))
+        );
+        await flushPromises();
+      }
+      transport.simulateClientConnected('spec4');
+      transport.simulateMessageReceived('spec4', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'spectate', protocolVersion: 1, spectatorName: 'W4' }))
+      );
+      await flushPromises();
+
+      const resp = decodeLastFrom(transport, 'spec4');
+      expect(resp).toMatchObject({ type: 'spectateResponse', accepted: false });
+    });
+
+    it('broadcasts spectatorUpdate after spectate', async () => {
+      const cb = jest.fn();
+      host.onSpectatorCountChanged(cb);
+      await host.start();
+      transport.simulateClientConnected('spec1');
+      transport.simulateMessageReceived('spec1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'spectate', protocolVersion: 1, spectatorName: 'W' }))
+      );
+      await flushPromises();
+      expect(cb).toHaveBeenCalledWith(1);
+    });
+
+    it('removes spectator on disconnect and decrements count', async () => {
+      const cb = jest.fn();
+      host.onSpectatorCountChanged(cb);
+      await host.start();
+      transport.simulateClientConnected('spec1');
+      transport.simulateMessageReceived('spec1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'spectate', protocolVersion: 1, spectatorName: 'W' }))
+      );
+      await flushPromises();
+      transport.simulateClientDisconnected('spec1');
+      await flushPromises();
+      expect(cb).toHaveBeenLastCalledWith(0);
+    });
+
+    it('sends gameStart to spectators when game starts', async () => {
+      // Add two players so startGame is valid
+      await host.start();
+      transport.simulateClientConnected('c1');
+      transport.simulateMessageReceived('c1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'join', protocolVersion: 1, playerName: 'Alice' }))
+      );
+      await flushPromises();
+      transport.simulateMessageReceived('c1', 'lobby', encodeMessage(JSON.stringify({ type: 'ready' })));
+      await flushPromises();
+      // Add spectator
+      transport.simulateClientConnected('spec1');
+      transport.simulateMessageReceived('spec1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'spectate', protocolVersion: 1, spectatorName: 'W' }))
+      );
+      await flushPromises();
+
+      host.startGame();
+      await flushPromises();
+
+      // gameStart is sent via sendToAll (clientId '__all__'), which reaches spectators too
+      const msgs = decodeAllFrom(transport, '__all__');
+      const gameStart = msgs.find((m: any) => m.type === 'gameStart');
+      expect(gameStart).toBeTruthy();
+    });
+
+    it('accepts spectate during game, rejects join during game', async () => {
+      await host.start();
+      // Add player and start game
+      transport.simulateClientConnected('c1');
+      transport.simulateMessageReceived('c1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'join', protocolVersion: 1, playerName: 'Alice' }))
+      );
+      await flushPromises();
+      transport.simulateMessageReceived('c1', 'lobby', encodeMessage(JSON.stringify({ type: 'ready' })));
+      await flushPromises();
+      host.startGame();
+      await flushPromises();
+
+      // Try to join during game — should be rejected
+      transport.simulateClientConnected('late1');
+      transport.simulateMessageReceived('late1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'join', protocolVersion: 1, playerName: 'Late' }))
+      );
+      await flushPromises();
+      expect(decodeLastFrom(transport, 'late1')).toMatchObject({ type: 'joinResponse', accepted: false });
+
+      // Try to spectate during game — should be accepted
+      transport.simulateClientConnected('spec1');
+      transport.simulateMessageReceived('spec1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'spectate', protocolVersion: 1, spectatorName: 'W' }))
+      );
+      await flushPromises();
+      expect(decodeLastFrom(transport, 'spec1')).toMatchObject({ type: 'spectateResponse', accepted: true });
+    });
+
+    it('calls onSpectatorJoined callback when spectate accepted', async () => {
+      const cb = jest.fn();
+      host.onSpectatorJoined(cb);
+      await host.start();
+      transport.simulateClientConnected('spec1');
+      transport.simulateMessageReceived('spec1', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'spectate', protocolVersion: 1, spectatorName: 'W' }))
+      );
+      await flushPromises();
+      expect(cb).toHaveBeenCalledWith('spec1');
+    });
+  });
 });

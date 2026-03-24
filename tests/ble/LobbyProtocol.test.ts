@@ -47,6 +47,22 @@ describe('LobbyProtocol', () => {
       const msg = { type: 'join', protocolVersion: 1, playerName: '' };
       expect(validateClientMessage(msg)).toBeNull();
     });
+
+    it('accepts a valid spectate message', () => {
+      const msg = { type: 'spectate', protocolVersion: 1, spectatorName: 'Watcher' };
+      const result = validateClientMessage(msg);
+      expect(result).toEqual({ type: 'spectate', protocolVersion: 1, spectatorName: 'Watcher' });
+    });
+
+    it('rejects spectate with wrong protocolVersion', () => {
+      const msg = { type: 'spectate', protocolVersion: 99, spectatorName: 'Watcher' };
+      expect(validateClientMessage(msg)).toBeNull();
+    });
+
+    it('rejects spectate with empty spectatorName', () => {
+      const msg = { type: 'spectate', protocolVersion: 1, spectatorName: '' };
+      expect(validateClientMessage(msg)).toBeNull();
+    });
   });
 
   describe('validateHostMessage', () => {
@@ -183,6 +199,30 @@ describe('LobbyProtocol', () => {
         blinds: { sb: 5, bb: 10 },
       });
       expect(msg).toBeNull();
+    });
+
+    it('accepts spectateResponse (accepted)', () => {
+      const msg = {
+        type: 'spectateResponse',
+        accepted: true,
+        spectatorId: 0,
+        players: [{ seat: 0, name: 'Host', ready: true }],
+        gameSettings: { sb: 5, bb: 10, initialChips: 1000 },
+      };
+      const result = validateHostMessage(msg);
+      expect(result).toMatchObject({ type: 'spectateResponse', accepted: true, spectatorId: 0 });
+    });
+
+    it('accepts spectateResponse (rejected)', () => {
+      const msg = { type: 'spectateResponse', accepted: false, reason: 'Full' };
+      const result = validateHostMessage(msg);
+      expect(result).toEqual({ type: 'spectateResponse', accepted: false, reason: 'Full' });
+    });
+
+    it('accepts spectatorUpdate', () => {
+      const msg = { type: 'spectatorUpdate', spectatorCount: 2 };
+      const result = validateHostMessage(msg);
+      expect(result).toEqual({ type: 'spectatorUpdate', spectatorCount: 2 });
     });
   });
 });

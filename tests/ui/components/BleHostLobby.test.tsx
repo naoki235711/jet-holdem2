@@ -15,6 +15,9 @@ const mockHost = {
   onPlayersChanged: jest.fn(),
   onGameStart: jest.fn(),
   onError: jest.fn(),
+  onSpectatorCountChanged: jest.fn(),
+  getClientSeatMap: jest.fn().mockReturnValue(new Map()),
+  getSpectatorClientIds: jest.fn().mockReturnValue([]),
 };
 
 jest.mock('../../../src/services/ble/LobbyHost', () => ({
@@ -23,6 +26,11 @@ jest.mock('../../../src/services/ble/LobbyHost', () => ({
 
 jest.mock('../../../src/services/ble/MockBleTransport', () => ({
   MockBleHostTransport: jest.fn(),
+}));
+
+jest.mock('../../../src/services/ble/transportRegistry', () => ({
+  setLobbyHost: jest.fn(),
+  clearLobbyHost: jest.fn(),
 }));
 
 describe('BleHostLobby', () => {
@@ -84,7 +92,16 @@ describe('BleHostLobby', () => {
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/game',
-      params: { mode: 'ble-host', sb: '5', bb: '10', initialChips: '1000', seat: '0' },
+      params: expect.objectContaining({
+        mode: 'ble-host',
+        sb: '5',
+        bb: '10',
+        initialChips: '1000',
+        seat: '0',
+        playerNames: expect.any(String),
+        clientSeatMap: expect.any(String),
+        spectatorClientIds: expect.any(String),
+      }),
     });
   });
 
@@ -104,5 +121,21 @@ describe('BleHostLobby', () => {
     fireEvent.press(screen.getByTestId('host-close-btn'));
     expect(mockHost.stop).toHaveBeenCalled();
     expect(mockBack).toHaveBeenCalled();
+  });
+
+  it('displays spectator count when spectators are present', async () => {
+    render(<BleHostLobby {...defaultProps} />);
+    const onSpectatorCountChanged = mockHost.onSpectatorCountChanged.mock.calls[0][0];
+
+    await act(async () => {
+      onSpectatorCountChanged(2);
+    });
+
+    expect(screen.getByText(/観戦者: 2人/)).toBeTruthy();
+  });
+
+  it('does not display spectator count when zero', () => {
+    render(<BleHostLobby {...defaultProps} />);
+    expect(screen.queryByText(/観戦者/)).toBeNull();
   });
 });
