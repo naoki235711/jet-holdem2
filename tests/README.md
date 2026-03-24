@@ -107,64 +107,64 @@ Jest プロジェクト: `engine` / 環境: Node.js / フレームワーク: ts-
 
 Jest プロジェクト: `engine` / 環境: Node.js
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/ble/bleConstants.test.ts` | BLE定数 |
-| `tests/ble/ChunkManager.test.ts` | メッセージチャンク分割・結合 |
-| `tests/ble/MockBleTransport.test.ts` | モックBLEトランスポート |
-| `tests/ble/LobbyProtocol.test.ts` | ロビープロトコルメッセージ検証 |
-| `tests/ble/GameProtocol.test.ts` | ゲームプロトコルメッセージ検証 |
-| `tests/ble/LobbyHost.test.ts` | ロビーホスト（プレイヤー管理） |
-| `tests/ble/LobbyClient.test.ts` | ロビークライアント（参加・準備） |
-| `tests/ble/BleHostGameService.test.ts` | BLEホストゲームサービス |
-| `tests/ble/BleClientGameService.test.ts` | BLEクライアントゲームサービス |
-| `tests/ble/BleHostTransportImpl.test.ts` | BLEホストトランスポート実装 |
-| `tests/ble/BleClientTransportImpl.test.ts` | BLEクライアントトランスポート実装 |
-| `tests/ble/transportRegistry.test.ts` | トランスポートレジストリ（set/get/clear） |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/ble/bleConstants.test.ts` | BLE定数 | `2948995` |
+| `tests/ble/ChunkManager.test.ts` | メッセージチャンク分割・結合 | `f657d8a` |
+| `tests/ble/MockBleTransport.test.ts` | モックBLEトランスポート | `d9f1040` |
+| `tests/ble/LobbyProtocol.test.ts` | ロビープロトコルメッセージ検証 | `1a023d1` |
+| `tests/ble/GameProtocol.test.ts` | ゲームプロトコルメッセージ検証 | `7ec5c6b` |
+| `tests/ble/LobbyHost.test.ts` | ロビーホスト（プレイヤー管理） | `fb27b49` |
+| `tests/ble/LobbyClient.test.ts` | ロビークライアント（参加・準備） | `00190f1` |
+| `tests/ble/BleHostGameService.test.ts` | BLEホストゲームサービス | `3d54346` |
+| `tests/ble/BleClientGameService.test.ts` | BLEクライアントゲームサービス | `8682457` |
+| `tests/ble/BleHostTransportImpl.test.ts` | BLEホストトランスポート実装 | `c3caba1` |
+| `tests/ble/BleClientTransportImpl.test.ts` | BLEクライアントトランスポート実装 | `b519d76` |
+| `tests/ble/transportRegistry.test.ts` | トランスポートレジストリ（set/get/clear） | `c1f82ec` |
 
 ### 6. BLE Integration テスト（2ファイル）
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/ble/integration/LobbyFlow.test.ts` | ロビーフロー（join/ready/disconnect） |
-| `tests/ble/integration/BleGameFlow.test.ts` | BLEゲームフロー（ラウンド進行、切断処理） |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/ble/integration/LobbyFlow.test.ts` | ロビーフロー（join/ready/disconnect） | `00190f1` |
+| `tests/ble/integration/BleGameFlow.test.ts` | BLEゲームフロー（ラウンド進行、切断処理） | `e6be04b` |
 
 ### 7. Persistence Unit テスト（3ファイル）
 
 Jest プロジェクト: `engine` / 環境: Node.js
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/persistence/InMemoryGameRepository.test.ts` | インメモリリポジトリ |
-| `tests/persistence/AsyncStorageGameRepository.test.ts` | AsyncStorageリポジトリ |
-| `tests/persistence/usePersistence.test.ts` | subscribePersistence（モックService経由） |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/persistence/InMemoryGameRepository.test.ts` | インメモリリポジトリ | `ce045e3` |
+| `tests/persistence/AsyncStorageGameRepository.test.ts` | AsyncStorageリポジトリ | `986fbd6` |
+| `tests/persistence/usePersistence.test.ts` | subscribePersistence（モックService経由） | `baca875` |
 
 ### 8. UIコンポーネント Unit テスト（20ファイル）
 
 Jest プロジェクト: `ui` / 環境: React Native / フレームワーク: @testing-library/react-native
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/ui/components/ActionButtons.test.tsx` | アクションボタン（Fold/Call/Raise） |
-| `tests/ui/components/ActionTimerBar.test.tsx` | アクションタイマーバー（カラー補間） |
-| `tests/ui/components/BleHostLobby.test.tsx` | BLEホストロビー画面 |
-| `tests/ui/components/BleJoinLobby.test.tsx` | BLE参加ロビー画面 |
-| `tests/ui/components/ChipAmount.test.tsx` | チップ表示 |
-| `tests/ui/components/CommunityCards.test.tsx` | コミュニティカード表示 |
-| `tests/ui/components/HostList.test.tsx` | ホスト一覧 |
-| `tests/ui/components/HostSetupForm.test.tsx` | ホスト設定フォーム |
-| `tests/ui/components/JoinSetupForm.test.tsx` | 参加設定フォーム |
-| `tests/ui/components/LobbyModeSelector.test.tsx` | ロビーモード選択 |
-| `tests/ui/components/LobbyView.test.tsx` | ロビー画面 |
-| `tests/ui/components/PassDeviceScreen.test.tsx` | ホットシートモードの端末パス画面 |
-| `tests/ui/components/PlayerSeat.test.tsx` | プレイヤー座席表示 |
-| `tests/ui/components/PlayerSlot.test.tsx` | プレイヤースロット |
-| `tests/ui/components/PlayingCard.test.tsx` | トランプカード表示 |
-| `tests/ui/components/PotDisplay.test.tsx` | ポット表示 |
-| `tests/ui/components/PreActionBar.test.tsx` | プリアクションバー（チェック/コール予約） |
-| `tests/ui/components/presetCalculator.test.ts` | レイズ額プリセット計算 |
-| `tests/ui/components/RaiseSlider.test.tsx` | レイズスライダー |
-| `tests/ui/components/ResultOverlay.test.tsx` | 結果オーバーレイ |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/ui/components/ActionButtons.test.tsx` | アクションボタン（Fold/Call/Raise） | `90e0b57` |
+| `tests/ui/components/ActionTimerBar.test.tsx` | アクションタイマーバー（カラー補間） | `f98b6de` |
+| `tests/ui/components/BleHostLobby.test.tsx` | BLEホストロビー画面 | `93186fa` |
+| `tests/ui/components/BleJoinLobby.test.tsx` | BLE参加ロビー画面 | `fd5528a` |
+| `tests/ui/components/ChipAmount.test.tsx` | チップ表示 | `c2cdaeb` |
+| `tests/ui/components/CommunityCards.test.tsx` | コミュニティカード表示 | `78739aa` |
+| `tests/ui/components/HostList.test.tsx` | ホスト一覧 | `89d6193` |
+| `tests/ui/components/HostSetupForm.test.tsx` | ホスト設定フォーム | `832b591` |
+| `tests/ui/components/JoinSetupForm.test.tsx` | 参加設定フォーム | `a5705bd` |
+| `tests/ui/components/LobbyModeSelector.test.tsx` | ロビーモード選択 | `eb9d512` |
+| `tests/ui/components/LobbyView.test.tsx` | ロビー画面 | `17e7c7f` |
+| `tests/ui/components/PassDeviceScreen.test.tsx` | ホットシートモードの端末パス画面 | `19a802c` |
+| `tests/ui/components/PlayerSeat.test.tsx` | プレイヤー座席表示 | `e560fe2` |
+| `tests/ui/components/PlayerSlot.test.tsx` | プレイヤースロット | `fba8c97` |
+| `tests/ui/components/PlayingCard.test.tsx` | トランプカード表示 | `a36247f` |
+| `tests/ui/components/PotDisplay.test.tsx` | ポット表示 | `b09cc6e` |
+| `tests/ui/components/PreActionBar.test.tsx` | プリアクションバー（チェック/コール予約） | `12c89f2` |
+| `tests/ui/components/presetCalculator.test.ts` | レイズ額プリセット計算 | `0e0cea2` |
+| `tests/ui/components/RaiseSlider.test.tsx` | レイズスライダー | `79f52c7` |
+| `tests/ui/components/ResultOverlay.test.tsx` | 結果オーバーレイ | `fce1582` |
 
 ### 9. UIコンテキスト Unit テスト（1ファイル）
 
