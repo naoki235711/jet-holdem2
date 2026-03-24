@@ -4,6 +4,13 @@ import { render } from '@testing-library/react-native';
 import { PreflopGrid } from '../../../src/components/preflop/PreflopGrid';
 import { GROUP_COLORS, FOLD_COLOR } from '../../../src/components/preflop/preflopData';
 
+function getBgColor(style: unknown): string | undefined {
+  if (Array.isArray(style)) {
+    return (style as Array<{ backgroundColor?: string }>).find(s => s?.backgroundColor)?.backgroundColor;
+  }
+  return (style as { backgroundColor?: string } | null | undefined)?.backgroundColor;
+}
+
 describe('PreflopGrid', () => {
   it('renders 169 data cells', () => {
     const { getAllByTestId } = render(<PreflopGrid />);
@@ -31,21 +38,13 @@ describe('PreflopGrid', () => {
   it('fold cell (2,12) has fold background color', () => {
     const { getByTestId } = render(<PreflopGrid />);
     const cell = getByTestId('preflop-cell-2-12');
-    const style = cell.props.style;
-    const bgColor = Array.isArray(style)
-      ? style.find((s: any) => s?.backgroundColor)?.backgroundColor
-      : style?.backgroundColor;
-    expect(bgColor).toBe(FOLD_COLOR);
+    expect(getBgColor(cell.props.style)).toBe(FOLD_COLOR);
   });
 
   it('AA cell (0,0) has group 1 color background', () => {
     const { getByTestId } = render(<PreflopGrid />);
     const cell = getByTestId('preflop-cell-0-0');
-    const style = cell.props.style;
-    const bgColor = Array.isArray(style)
-      ? style.find((s: any) => s?.backgroundColor)?.backgroundColor
-      : style?.backgroundColor;
-    expect(bgColor).toBe(GROUP_COLORS[1]);
+    expect(getBgColor(cell.props.style)).toBe(GROUP_COLORS[1]);
   });
 
   it('tier-2 cell (A9s at 0,5) renders a freq indicator dot', () => {
