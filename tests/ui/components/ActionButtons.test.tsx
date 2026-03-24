@@ -274,7 +274,7 @@ describe('ActionButtons', () => {
   it('shows 観戦中 indicator when mode is ble-spectator', () => {
     const mockService = createMockService();
     const state = createMockGameState({ phase: 'preflop', activePlayer: 1 });
-    mockService.getState.mockReturnValue(state);
+    (mockService.getState as jest.Mock).mockReturnValue(state);
 
     const { getByText, queryByTestId } = renderWithGame(<ActionButtons />, {
       service: mockService,
