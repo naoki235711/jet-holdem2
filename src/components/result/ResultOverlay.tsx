@@ -95,7 +95,7 @@ export function ResultOverlay() {
 
           {isGameOver ? (
             <View style={styles.gameOverButtons}>
-              {mode !== 'ble-client' ? (
+              {mode !== 'ble-client' && mode !== 'ble-spectator' ? (
                 <TouchableOpacity
                   testID="rematch-btn"
                   style={styles.actionBtn}
@@ -115,9 +115,13 @@ export function ResultOverlay() {
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity testID="next-round-btn" style={styles.actionBtn} onPress={nextRound}>
-              <Text style={styles.actionBtnText}>次のラウンドへ</Text>
-            </TouchableOpacity>
+            mode !== 'ble-client' && mode !== 'ble-spectator' ? (
+              <TouchableOpacity testID="next-round-btn" style={styles.actionBtn} onPress={nextRound}>
+                <Text style={styles.actionBtnText}>次のラウンドへ</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.waitingText}>次のラウンドを待っています...</Text>
+            )
           )}
         </View>
       </View>
