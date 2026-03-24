@@ -1,140 +1,141 @@
-// src/bot/strategy/postflopStrategy.ts
+import { GameState, Card, PlayerAction } from '../../gameEngine/types';
+import { estimateEquity } from '../equity/equityCalculator';
 
-import { GameState, PlayerAction, Card, HandRank } from '../../gameEngine/types';
-import { evaluate7Cards, evaluateHand, compareHands } from '../../gameEngine/HandEvaluator';
-import { parseCard } from '../../gameEngine/Card';
+type BoardTexture = 'dry' | 'wet';
 
-type Strength = 'Strong' | 'Medium' | 'Weak' | 'Draw' | 'Air';
+const RANK_MAP: Record<string, number> = {
+  '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,
+  'T':10,'J':11,'Q':12,'K':13,'A':14,
+};
 
-/**
- * evaluate7Cards は厳密に7枚を要求するため、フロップ(5枚)・ターン(6枚)では
- * 別の評価方法を使う。
- */
-function evaluateBestHand(holeCards: Card[], community: Card[]) {
-  const all = [...holeCards, ...community] as Card[];
-  if (all.length === 7) return evaluate7Cards(all);
-  if (all.length === 5) return evaluateHand(all);
-  // ターン(6枚): C(6,5)=6通りの5枚組から最良を選ぶ
-  let best = evaluateHand([all[0],all[1],all[2],all[3],all[4]]);
-  for (let i = 0; i < all.length; i++) {
-    const five = all.filter((_, j) => j !== i) as Card[];
-    const result = evaluateHand(five);
-    if (compareHands(result, best) > 0) best = result;
-  }
-  return best;
-}
+export function detectBoardTexture(community: Card[]): BoardTexture {
+  if (community.length < 3) return 'dry';
 
-function classifyStrength(holeCards: Card[], community: Card[]): Strength {
-  const all = [...holeCards, ...community] as Card[];
-  const result = evaluateBestHand(holeCards, community);
-
-  // FullHouse(6) and above are always Strong (set / boat / quads / straight flush)
-  if (result.rank >= HandRank.FullHouse)    return 'Strong';
-  // ThreeOfAKind and above (sets, straights, flushes, full houses, etc.) bet aggressively
-  if (result.rank >= HandRank.ThreeOfAKind) return 'Strong';
-  if (result.rank >= HandRank.TwoPair)      return 'Medium';
-  if (result.rank === HandRank.OnePair)     return 'Weak';
-
-  // HighCard: check for flush draw (4 suited cards)
-  const suits = all.map(c => c[1]);
-  const suitCounts = suits.reduce<Record<string,number>>((acc, s) => {
-    acc[s] = (acc[s] ?? 0) + 1; return acc;
-  }, {});
-  if (Object.values(suitCounts).some(n => n >= 4)) return 'Draw'; // flush draw
-
-  // Straight draw: check for 4 consecutive ranks
-  const rankVals = [...new Set(all.map(c => {
-    const { rank } = parseCard(c);
-    const order = '23456789TJQKA';
-    return order.indexOf(rank);
-  }))].sort((a, b) => a - b);
-
-  for (let i = 0; i <= rankVals.length - 4; i++) {
-    if (rankVals[i+3] - rankVals[i] <= 4) return 'Draw'; // OESD or gutshot
+  // Monotone: 3+ cards of same suit
+  const suitCounts: Record<string, number> = {};
+  for (const card of community) {
+    const suit = card[1];
+    suitCounts[suit] = (suitCounts[suit] ?? 0) + 1;
+    if (suitCounts[suit] >= 3) return 'wet';
   }
 
-  return 'Air';
+  // Connected: 3 strictly consecutive ranks (gap straights are treated as dry)
+  const vals = community.map(c => RANK_MAP[c[0]] ?? 0).sort((a, b) => a - b);
+  for (let i = 0; i <= vals.length - 3; i++) {
+    if (vals[i + 1] === vals[i] + 1 && vals[i + 2] === vals[i] + 2) return 'wet';
+  }
+
+  return 'dry';
 }
 
-function calcSPR(state: GameState, seat: number): number {
-  const bot = state.players.find(p => p.seat === seat)!;
-  const opponents = state.players.filter(p => p.seat !== seat && p.status !== 'out' && p.status !== 'folded');
-  if (opponents.length === 0) return 999;
-  const effectiveStack = Math.min(bot.chips, Math.max(...opponents.map(p => p.chips)));
-  const totalPot = state.pots.reduce((sum, p) => sum + p.amount, 0);
-  if (totalPot === 0) return 999;
+function calcSPR(botChips: number, gameState: GameState, botSeat: number): number {
+  const opponentChips = gameState.players
+    .filter(p => p.seat !== botSeat && p.status !== 'out' && p.status !== 'folded')
+    .map(p => p.chips);
+  if (opponentChips.length === 0) return Infinity;
+  const effectiveStack = Math.min(botChips, Math.max(...opponentChips));
+  const totalPot = gameState.pots.reduce((sum, p) => sum + p.amount, 0);
+  if (totalPot === 0) return Infinity;
   return effectiveStack / totalPot;
 }
 
-/**
- * Postflop: IP = the dealer/BTN (acts last).
- * Sort active players by clockwise distance from dealer ascending;
- * the dealer themselves (distance=0) acts last = IP.
- */
-function isIP(state: GameState, seat: number): boolean {
-  const totalSeats = state.players.length;
-  const active = state.players
-    .filter(p => p.status !== 'out' && p.status !== 'folded')
-    .sort((a, b) => ((a.seat - state.dealer + totalSeats) % totalSeats) -
-                    ((b.seat - state.dealer + totalSeats) % totalSeats));
-  // The player with smallest distance (0 = dealer/BTN) acts last postflop = IP
-  return active[0]?.seat === seat;
+function detectIP(gameState: GameState, seat: number): boolean {
+  const active = gameState.players
+    .filter(p => p.status === 'active' || p.status === 'allIn')
+    .map(p => p.seat);
+  if (active.length === 0) return true;
+
+  const numSeats = Math.max(...gameState.players.map(p => p.seat)) + 1;
+  const dealer = gameState.dealer;
+
+  // Post-flop index: 0 = first to act (left of dealer), higher = later = IP
+  // Use true modulo (always positive) to handle out-of-range dealer values
+  const pfIdx = (s: number) => ((s - dealer - 1) % numSeats + numSeats) % numSeats;
+  const ipSeat = active.reduce((best, s) => pfIdx(s) > pfIdx(best) ? s : best);
+  return ipSeat === seat;
 }
 
-function betSize(state: GameState, fraction: number, player: { chips: number; bet: number }): PlayerAction {
-  const pot = state.pots.reduce((sum, p) => sum + p.amount, 0);
-  const amount = Math.round(pot * fraction);
-  const available = player.chips + player.bet;
-  if (amount >= available) return { action: 'allIn' };
-  if (amount <= state.currentBet) return { action: 'allIn' };
-  return { action: 'raise', amount };
+function betAmount(equity: number, totalPot: number, botChips: number, minBet: number): number {
+  const multiplier = equity > 0.65 ? 0.75 : 0.5;
+  return Math.min(Math.max(Math.round(totalPot * multiplier), minBet), botChips);
 }
 
 export function decidePostflopAction(
-  state: GameState,
+  gameState: GameState,
   holeCards: Card[],
-  seat: number,
+  seat: number
 ): PlayerAction {
-  const strength = classifyStrength(holeCards, state.community);
-  const spr = calcSPR(state, seat);
-  const ip = isIP(state, seat);
-  const canCheck = state.currentBet === 0;
-  const player = state.players.find(p => p.seat === seat)!;
+  const player = gameState.players.find(p => p.seat === seat)!;
+  const totalPot = gameState.pots.reduce((sum, p) => sum + p.amount, 0);
+  const callAmount = gameState.currentBet - player.bet;
 
-  const callAmt = Math.min(state.currentBet - player.bet, player.chips);
-  const callFraction = callAmt / (player.chips || 1);
+  const numOpponents = gameState.players.filter(
+    p => p.seat !== seat && (p.status === 'active' || p.status === 'allIn')
+  ).length;
 
-  if (strength === 'Strong') {
-    if (spr < 4) return { action: 'allIn' };
-    return betSize(state, 0.75, player);  // same bet size IP and OOP
-  }
+  const equity = numOpponents > 0
+    ? estimateEquity(holeCards, gameState.community, numOpponents)
+    : 1.0;
 
-  if (strength === 'Medium') {
-    if (spr < 4) return canCheck ? { action: 'check' } : { action: 'call' };
-    if (ip) return canCheck ? betSize(state, 0.5, player) : { action: 'call' };
-    if (canCheck) return { action: 'check' };
-    return callFraction <= 0.30 ? { action: 'call' } : { action: 'fold' };
-  }
+  const spr = calcSPR(player.chips, gameState, seat);
+  const isIP = detectIP(gameState, seat);
+  const texture = detectBoardTexture(gameState.community);
+  const minBet = gameState.blinds.bb;
+  // Minimum raise TO = currentBet + last raise increment (approximated as max(currentBet, BB))
+  const minRaiseTo = gameState.currentBet + Math.max(gameState.currentBet, gameState.blinds.bb);
 
-  if (strength === 'Weak') {
-    if (canCheck) return { action: 'check' };
-    return callFraction <= 0.15 ? { action: 'call' } : { action: 'fold' };
-  }
+  if (callAmount > 0) {
+    // Facing a bet
+    const potOdds = callAmount / (totalPot + callAmount);
 
-  if (strength === 'Draw') {
-    if (ip) {
-      if (canCheck) return Math.random() < 0.4 ? betSize(state, 0.5, player) : { action: 'check' };
-      return callFraction <= 0.25 ? { action: 'call' } : { action: 'fold' };
+    // 1. SPR commit + equity advantage → all-in
+    if (spr < 2 && equity > 0.50) return { action: 'allIn' };
+
+    // 2. OOP re-raise (exploits check-raise line)
+    if (equity > 0.70 && !isIP && Math.random() < 0.3) {
+      const amt = betAmount(equity, totalPot, player.chips, minRaiseTo);
+      if (amt >= minRaiseTo) return { action: 'raise', amount: amt };
     }
-    if (canCheck) return { action: 'check' };
-    return { action: 'fold' };
-  }
 
-  // Air
-  if (ip) {
-    if (canCheck) return Math.random() < 0.25 ? betSize(state, 0.5, player) : { action: 'check' };
+    // 3. Value raise
+    if (equity > 0.70 && player.chips + player.bet >= minRaiseTo) {
+      const amt = betAmount(equity, totalPot, player.chips, minRaiseTo);
+      if (amt >= minRaiseTo) return { action: 'raise', amount: amt };
+    }
+
+    // 4. Profitable call
+    if (equity > potOdds) {
+      if (callAmount >= player.chips) return { action: 'allIn' };
+      return { action: 'call' };
+    }
+
     return { action: 'fold' };
+
+  } else {
+    // Can check
+
+    // 1. SPR commit + equity advantage → all-in
+    if (spr < 2 && equity > 0.50) return { action: 'allIn' };
+
+    // 2. OOP check-raise bait (check with strong hand)
+    if (equity > 0.65 && !isIP && Math.random() < 0.3) return { action: 'check' };
+
+    // 3. Strong value bet
+    if (equity > 0.65) {
+      return { action: 'raise', amount: betAmount(equity, totalPot, player.chips, minBet) };
+    }
+
+    // 4. Thin value bet
+    if (equity > 0.45) {
+      return { action: 'raise', amount: betAmount(equity, totalPot, player.chips, minBet) };
+    }
+
+    // 5. Bluff (IP only, frequency adjusted for board texture)
+    const bluffFreq = texture === 'wet' ? 0.1 : 0.2;
+    if (isIP && Math.random() < bluffFreq) {
+      return { action: 'raise', amount: betAmount(equity, totalPot, player.chips, minBet) };
+    }
+
+    return { action: 'check' };
   }
-  if (canCheck) return { action: 'check' };
-  return { action: 'fold' };
 }
