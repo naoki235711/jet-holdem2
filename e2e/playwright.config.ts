@@ -11,7 +11,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { browserName: 'chromium' } },
+    { name: 'chrome', use: { browserName: 'chromium', channel: 'chrome' } },
   ],
   webServer: {
     command: 'npx expo start --web --port 8081',
