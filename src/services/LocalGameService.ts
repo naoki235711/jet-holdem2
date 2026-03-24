@@ -88,7 +88,7 @@ export class LocalGameService implements GameService {
       ...playerNames.map(name => ({ name, isBot: false })),
       ...botNames.map(name => ({ name, isBot: true })),
     ];
-    const shuffled = fisherYatesShuffle(allEntries);
+    const shuffled = botCount > 0 ? fisherYatesShuffle(allEntries) : allEntries;
 
     const players: Player[] = shuffled.map((entry, i) => ({
       seat: i,
