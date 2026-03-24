@@ -168,42 +168,42 @@ Jest プロジェクト: `ui` / 環境: React Native / フレームワーク: @t
 
 ### 9. UIコンテキスト Unit テスト（1ファイル）
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/ui/contexts/GameContext.test.tsx` | GameContext（状態管理） |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/ui/contexts/GameContext.test.tsx` | GameContext（状態管理） | `279e052` |
 
 ### 10. UI Integration テスト（7ファイル）
 
 実際の `LocalGameService` + `GameLoop` を使用してUI↔エンジンの結合をテスト
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/ui/integration/gameFlow.integration.test.tsx` | UIからエンジンへの全体フロー、フェーズ遷移 |
-| `tests/ui/integration/bettingActions.integration.test.tsx` | ベッティング操作 |
-| `tests/ui/integration/hotseatMode.integration.test.tsx` | ホットシートモード |
-| `tests/ui/integration/resultAndNextRound.integration.test.tsx` | 結果表示・次ラウンドへの遷移 |
-| `tests/ui/integration/edgeCases.integration.test.tsx` | エッジケース（サイドポット、オールインなど） |
-| `tests/ui/integration/preAction.integration.test.tsx` | プリアクション（チェック/コール予約） |
-| `tests/ui/integration/gameProviderModes.integration.test.tsx` | GameProviderのモード切替 |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/ui/integration/gameFlow.integration.test.tsx` | UIからエンジンへの全体フロー、フェーズ遷移 | `f57aaf0` |
+| `tests/ui/integration/bettingActions.integration.test.tsx` | ベッティング操作 | `9d35738` |
+| `tests/ui/integration/hotseatMode.integration.test.tsx` | ホットシートモード | `9d35738` |
+| `tests/ui/integration/resultAndNextRound.integration.test.tsx` | 結果表示・次ラウンドへの遷移 | `f57aaf0` |
+| `tests/ui/integration/edgeCases.integration.test.tsx` | エッジケース（サイドポット、オールインなど） | `9d35738` |
+| `tests/ui/integration/preAction.integration.test.tsx` | プリアクション（チェック/コール予約） | `fe734ca` |
+| `tests/ui/integration/gameProviderModes.integration.test.tsx` | GameProviderのモード切替 | `029d20f` |
 
 ### 11. クロスレイヤー Integration テスト（3ファイル）
 
 複数ドメイン（BLE + Service + Persistence など）をまたぐ結合テスト
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `tests/integration/lobbyToGame.integration.test.ts` | ロビーからゲーム開始までのフロー |
-| `tests/integration/persistenceLifecycle.integration.test.ts` | Persistence ライフサイクル |
-| `tests/integration/repositoryResilience.integration.test.ts` | リポジトリ耐障害性 |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `tests/integration/lobbyToGame.integration.test.ts` | ロビーからゲーム開始までのフロー | `657710e` |
+| `tests/integration/persistenceLifecycle.integration.test.ts` | Persistence ライフサイクル | `6c913f8` |
+| `tests/integration/repositoryResilience.integration.test.ts` | リポジトリ耐障害性 | `cd4333e` |
 
 ### 12. E2E テスト - Playwright（2ファイル）
 
 ブラウザ上でExpo Webサーバーに接続してテスト / Base URL: `http://localhost:8081`
 
-| ファイル | テスト対象 |
-|---------|-----------|
-| `e2e/hotseat.spec.ts` | ホットシートモードのブラウザテスト |
-| `e2e/lobby.spec.ts` | ロビー画面 |
+| ファイル | テスト対象 | 最終コミット |
+|---------|-----------|-------------|
+| `e2e/hotseat.spec.ts` | ホットシートモードのブラウザテスト | `2d0c47e` |
+| `e2e/lobby.spec.ts` | ロビー画面 | `2d0c47e` |
 
 ---
 
