@@ -50,7 +50,7 @@ tests/
 ├── ble/                 # BLEテスト（12ファイル）
 │   └── integration/     # BLE統合テスト（2ファイル）
 ├── persistence/         # Persistenceテスト（3ファイル）
-├── hooks/               # Hooksテスト（1ファイル）
+├── hooks/               # Hooksテスト（2ファイル）
 ├── integration/         # クロスレイヤー統合テスト（3ファイル）
 └── ui/
     ├── setup.js         # React Native テストセットアップ
