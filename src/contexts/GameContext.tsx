@@ -35,9 +35,10 @@ interface GameProviderProps {
   initialChips?: number;
   blinds?: { sb: number; bb: number };
   playerNames?: string[];
+  botCount?: number;           // ← 追加
 }
 
-export function GameProvider({ children, service, mode, repository, initialChips, blinds, playerNames }: GameProviderProps) {
+export function GameProvider({ children, service, mode, repository, initialChips, blinds, playerNames, botCount = 0 }: GameProviderProps) {
   const [state, setState] = useState<GameState | null>(null);
   const [viewingSeat, setViewingSeat] = useState(0);
   const [showdownResult, setShowdownResult] = useState<ShowdownResult | null>(null);
@@ -49,6 +50,8 @@ export function GameProvider({ children, service, mode, repository, initialChips
   blindsRef.current = blinds;
   const initialChipsRef = useRef(initialChips);
   initialChipsRef.current = initialChips;
+  const botCountRef = useRef(botCount);
+  botCountRef.current = botCount;
 
   // Pre-action state (BLE modes only)
   const [preAction, setPreActionState] = useState<PreActionType>(null);
@@ -146,10 +149,13 @@ export function GameProvider({ children, service, mode, repository, initialChips
     return unsub;
   }, [service, mode, setPreAction, autoResolveShowdown]);
 
-  // Auto-update viewingSeat in hotseat mode
+  // Auto-update viewingSeat in hotseat mode（Bot席はスキップ）
   useEffect(() => {
     if (mode === 'hotseat' && state && state.activePlayer >= 0) {
-      setViewingSeat(state.activePlayer);
+      const botSeats = serviceRef.current.getBotSeats?.() ?? new Set<number>();
+      if (!botSeats.has(state.activePlayer)) {
+        setViewingSeat(state.activePlayer);
+      }
     }
   }, [mode, state?.activePlayer]);
 
@@ -178,7 +184,7 @@ export function GameProvider({ children, service, mode, repository, initialChips
     const bl = blindsRef.current;
     const chips = initialChipsRef.current;
     if (names == null || bl == null || chips == null) return;
-    serviceRef.current.startGame(names, bl, chips);
+    serviceRef.current.startGame(names, bl, chips, undefined, botCountRef.current);
     serviceRef.current.startRound();
     setShowdownResult(null);
   }, []);
@@ -190,6 +196,9 @@ export function GameProvider({ children, service, mode, repository, initialChips
     if (currentState.activePlayer < 0) return;
 
     const seat = currentState.activePlayer;
+    // Bot席はタイムアウト処理しない（Bot自身が1秒タイマーで処理する）
+    const botSeats = serviceRef.current.getBotSeats?.() ?? new Set<number>();
+    if (botSeats.has(seat)) return;
     const actionInfo = serviceRef.current.getActionInfo(seat);
 
     if (actionInfo.canCheck) {
