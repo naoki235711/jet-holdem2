@@ -60,14 +60,14 @@ describe('decidePreflopAction', () => {
   });
 
   it('calls with medium hand facing raise', () => {
-    // KQs is group 3 (UTG+1/+2 range) → call facing raise
+    // KQs is group 2 → call facing raise
     const state = makeState({ currentBet: 30, activePlayer: 1 });
     const result = decidePreflopAction(state, ['Kh', 'Qh'], 1);
     expect(result.action).toBe('call');
   });
 
   it('3-bets with strong hand facing raise', () => {
-    // AKs is group 2 → 3-bet
+    // AKs is group 1 → 3-bet (threshold is group <= 1)
     const state = makeState({ currentBet: 30, activePlayer: 1 });
     const result = decidePreflopAction(state, ['Ah', 'Kh'], 1);
     expect(result.action).toBe('raise');
