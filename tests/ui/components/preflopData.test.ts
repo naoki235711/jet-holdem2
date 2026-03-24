@@ -57,20 +57,36 @@ describe('preflopData', () => {
       expect(MATRIX[1][0]).toBe(11);
     });
 
-    it('A9s (0,5) is group 3 tier 2 (97%)', () => {
-      expect(MATRIX[0][5]).toBe(32);
+    it('A9s (0,5) is group 2 tier 2 (97%)', () => {
+      expect(MATRIX[0][5]).toBe(22);
     });
 
-    it('KQo (2,1) is group 3 tier 3 (70%)', () => {
-      expect(MATRIX[2][1]).toBe(33);
+    it('KQo (2,1) is group 2 tier 3 (70%)', () => {
+      expect(MATRIX[2][1]).toBe(23);
     });
 
-    it('22 (diagonal 12,12) is group 7 tier 1', () => {
-      expect(MATRIX[12][12]).toBe(71);
+    it('22 (diagonal 12,12) is group 5 tier 1 — CO range', () => {
+      expect(MATRIX[12][12]).toBe(51);
     });
 
-    it('Q2s (2,12) is fold', () => {
-      expect(MATRIX[2][12]).toBe(0);
+    it('Q2s (2,12) is group 7 tier 1 — SB opens all Qxs', () => {
+      expect(MATRIX[2][12]).toBe(71);
+    });
+
+    it('99 (5,5) is group 2 tier 1 — UTG range', () => {
+      expect(MATRIX[5][5]).toBe(21);
+    });
+
+    it('88 (6,6) is group 2 tier 1 — UTG range', () => {
+      expect(MATRIX[6][6]).toBe(21);
+    });
+
+    it('ATo (4,0) is group 3 tier 2 — UTG1+UTG2 range', () => {
+      expect(MATRIX[4][0]).toBe(32);
+    });
+
+    it('QTo (4,2) is group 6 tier 1 — BTN range', () => {
+      expect(MATRIX[4][2]).toBe(61);
     });
   });
 

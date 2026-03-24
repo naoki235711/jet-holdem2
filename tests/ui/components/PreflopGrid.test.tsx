@@ -35,10 +35,10 @@ describe('PreflopGrid', () => {
     expect(cell).toHaveTextContent('AKo');
   });
 
-  it('fold cell (2,12) has fold background color', () => {
+  it('Q2s cell (2,12) has group 7 (SB) background color', () => {
     const { getByTestId } = render(<PreflopGrid />);
     const cell = getByTestId('preflop-cell-2-12');
-    expect(getBgColor(cell.props.style)).toBe(FOLD_COLOR);
+    expect(getBgColor(cell.props.style)).toBe(GROUP_COLORS[7]);
   });
 
   it('AA cell (0,0) has group 1 color background', () => {
