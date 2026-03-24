@@ -30,9 +30,6 @@ function classifyStrength(holeCards: Card[], community: Card[]): Strength {
 
   // FullHouse(6) and above are always Strong (set / boat / quads / straight flush)
   if (result.rank >= HandRank.FullHouse)    return 'Strong';
-  // Flush on the flop (5 total cards) is treated as a draw scenario —
-  // the board texture drives the flush and may not hold up.
-  if (result.rank === HandRank.Flush)       return 'Draw';
   // Straight(4), ThreeOfAKind(3) — strong made hands
   if (result.rank >= HandRank.ThreeOfAKind) return 'Strong';
   if (result.rank >= HandRank.TwoPair)      return 'Medium';

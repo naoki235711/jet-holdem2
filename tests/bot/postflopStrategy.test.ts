@@ -59,7 +59,7 @@ describe('decidePostflopAction', () => {
   });
 
   it('calls or folds draw with correct structure', () => {
-    // Flush draw: Jh Th on Ah 7h 2h board (4 hearts total)
+    // Flush draw: Jh Ts on Ah 7h 2h board (4 hearts total)
     const state = makeState({
       community: ['Ah', '7h', '2h'],
       currentBet: 50,
@@ -69,8 +69,8 @@ describe('decidePostflopAction', () => {
       ],
       activePlayer: 1,
     });
-    // Jh Th + Ah 7h 2h = 4 hearts → flush draw, OOP
-    const result = decidePostflopAction(state, ['Jh', 'Th'], 1);
+    // Jh Ts + Ah 7h 2h = 4 hearts (Jh+Ah+7h+2h) → flush draw, OOP
+    const result = decidePostflopAction(state, ['Jh', 'Ts'], 1);
     // OOP with draw facing bet → fold
     expect(result.action).toBe('fold');
   });
