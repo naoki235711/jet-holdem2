@@ -22,6 +22,7 @@ export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyPro
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
   const playersRef = useRef<LobbyPlayer[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [spectatorCount, setSpectatorCount] = useState(0);
   const lobbyHost = useRef<LobbyHost | null>(null);
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyPro
       });
     });
     host.onError((msg) => setError(msg));
+    host.onSpectatorCountChanged((count) => setSpectatorCount(count));
     host.start();
     lobbyHost.current = host;
     return () => {
@@ -86,6 +88,10 @@ export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyPro
           );
         })}
       </View>
+
+      {spectatorCount > 0 && (
+        <Text style={styles.spectatorInfo}>観戦者: {spectatorCount}人</Text>
+      )}
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -132,6 +138,12 @@ const styles = StyleSheet.create({
   },
   playerList: {
     marginBottom: 16,
+  },
+  spectatorInfo: {
+    color: Colors.subText,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
   },
   errorText: {
     color: '#EF4444',

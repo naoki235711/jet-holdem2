@@ -15,6 +15,7 @@ const mockHost = {
   onPlayersChanged: jest.fn(),
   onGameStart: jest.fn(),
   onError: jest.fn(),
+  onSpectatorCountChanged: jest.fn(),
   getClientSeatMap: jest.fn().mockReturnValue(new Map()),
   getSpectatorClientIds: jest.fn().mockReturnValue([]),
 };
@@ -120,5 +121,21 @@ describe('BleHostLobby', () => {
     fireEvent.press(screen.getByTestId('host-close-btn'));
     expect(mockHost.stop).toHaveBeenCalled();
     expect(mockBack).toHaveBeenCalled();
+  });
+
+  it('displays spectator count when spectators are present', async () => {
+    render(<BleHostLobby {...defaultProps} />);
+    const onSpectatorCountChanged = mockHost.onSpectatorCountChanged.mock.calls[0][0];
+
+    await act(async () => {
+      onSpectatorCountChanged(2);
+    });
+
+    expect(screen.getByText(/観戦者: 2人/)).toBeTruthy();
+  });
+
+  it('does not display spectator count when zero', () => {
+    render(<BleHostLobby {...defaultProps} />);
+    expect(screen.queryByText(/観戦者/)).toBeNull();
   });
 });
