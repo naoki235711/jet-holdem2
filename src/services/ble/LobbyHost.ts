@@ -15,11 +15,15 @@ type LobbyHostState = 'idle' | 'advertising' | 'waitingForPlayers' | 'gameStarti
 export class LobbyHost {
   private state: LobbyHostState = 'idle';
   private players = new Map<string, LobbyPlayer>(); // clientId → LobbyPlayer
+  private spectators = new Map<string, { id: number; name: string }>(); // clientId → spectator info
+  private maxSpectators = 4;
   private chunkManager = new ChunkManager();
 
   private _onPlayersChanged: ((players: LobbyPlayer[]) => void) | null = null;
   private _onGameStart: ((blinds: { sb: number; bb: number }) => void) | null = null;
   private _onError: ((error: string) => void) | null = null;
+  private _onSpectatorCountChanged: ((count: number) => void) | null = null;
+  private _onSpectatorJoined: ((clientId: string) => void) | null = null;
 
   constructor(
     private transport: BleHostTransport,
@@ -71,6 +75,13 @@ export class LobbyHost {
       blinds,
       initialChips: this.gameSettings.initialChips,
     });
+    for (const clientId of this.spectators.keys()) {
+      this.sendToClient(clientId, {
+        type: 'gameStart',
+        blinds: { sb: this.gameSettings.sb, bb: this.gameSettings.bb },
+        initialChips: this.gameSettings.initialChips,
+      });
+    }
     this._onGameStart?.(blinds);
   }
 
@@ -81,6 +92,11 @@ export class LobbyHost {
   }
 
   private handleClientDisconnected(clientId: string): void {
+    if (this.spectators.has(clientId)) {
+      this.spectators.delete(clientId);
+      this.broadcastSpectatorCount();
+      return;
+    }
     if (this.players.has(clientId)) {
       this.players.delete(clientId);
       this.notifyPlayersChanged();
@@ -106,12 +122,20 @@ export class LobbyHost {
       case 'ready':
         this.handleReady(clientId);
         break;
+      case 'spectate':
+        this.handleSpectate(clientId, msg.spectatorName);
+        break;
     }
   }
 
   private handleJoin(clientId: string, playerName: string): void {
     // Ignore duplicate join
     if (this.players.has(clientId)) return;
+
+    if (this.state === 'gameStarting') {
+      this.sendToClient(clientId, { type: 'joinResponse', accepted: false, reason: 'Game already in progress' });
+      return;
+    }
 
     if (this.players.size >= MAX_PLAYERS) {
       this.sendToClient(clientId, {
@@ -147,6 +171,42 @@ export class LobbyHost {
     this.sendToAll({ type: 'playerUpdate', players: this.getPlayerList() });
   }
 
+  private handleSpectate(clientId: string, spectatorName: string): void {
+    if (this.spectators.has(clientId)) return; // duplicate ignore
+
+    if (this.spectators.size >= this.maxSpectators) {
+      this.sendToClient(clientId, { type: 'spectateResponse', accepted: false, reason: 'Spectator slots full' });
+      return;
+    }
+
+    const spectatorId = this.findNextSpectatorId();
+    this.spectators.set(clientId, { id: spectatorId, name: spectatorName });
+
+    this.sendToClient(clientId, {
+      type: 'spectateResponse',
+      accepted: true,
+      spectatorId,
+      players: this.getPlayerList(),
+      gameSettings: this.gameSettings,
+    });
+
+    this.broadcastSpectatorCount();
+    this._onSpectatorJoined?.(clientId);
+  }
+
+  private findNextSpectatorId(): number {
+    const taken = new Set(Array.from(this.spectators.values()).map(s => s.id));
+    for (let i = 0; i <= 3; i++) {
+      if (!taken.has(i)) return i;
+    }
+    return 0;
+  }
+
+  private broadcastSpectatorCount(): void {
+    this._onSpectatorCountChanged?.(this.spectators.size);
+    this.sendToAll({ type: 'spectatorUpdate', spectatorCount: this.spectators.size });
+  }
+
   // --- Callbacks ---
 
   onPlayersChanged(callback: (players: LobbyPlayer[]) => void): void {
@@ -159,6 +219,22 @@ export class LobbyHost {
 
   onError(callback: (error: string) => void): void {
     this._onError = callback;
+  }
+
+  onSpectatorCountChanged(callback: (count: number) => void): void {
+    this._onSpectatorCountChanged = callback;
+  }
+
+  onSpectatorJoined(callback: (clientId: string) => void): void {
+    this._onSpectatorJoined = callback;
+  }
+
+  getSpectatorCount(): number {
+    return this.spectators.size;
+  }
+
+  getSpectatorClientIds(): string[] {
+    return Array.from(this.spectators.keys());
   }
 
   getClientSeatMap(): Map<string, number> {
