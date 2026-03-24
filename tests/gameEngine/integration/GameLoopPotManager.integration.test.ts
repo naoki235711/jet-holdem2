@@ -1,5 +1,5 @@
-import { GameLoop } from '../../src/gameEngine/GameLoop';
-import { Player, PlayerStatus, Blinds } from '../../src/gameEngine/types';
+import { GameLoop } from '../../../src/gameEngine/GameLoop';
+import { Player, PlayerStatus, Blinds } from '../../../src/gameEngine/types';
 
 function makePlayers(configs: { name: string; chips: number }[]): Player[] {
   return configs.map((c, i) => ({
