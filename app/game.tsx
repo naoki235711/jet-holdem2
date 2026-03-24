@@ -1,7 +1,7 @@
 // app/game.tsx
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { GameProvider } from '../src/contexts/GameContext';
 import { GameService } from '../src/services/GameService';
@@ -15,6 +15,7 @@ import { CommunityCards } from '../src/components/table/CommunityCards';
 import { PotDisplay } from '../src/components/table/PotDisplay';
 import { ActionButtons } from '../src/components/actions/ActionButtons';
 import { ResultOverlay } from '../src/components/result/ResultOverlay';
+import { PreflopChartModal } from '../src/components/preflop/PreflopChartModal';
 import { PassDeviceScreen } from '../src/components/common/PassDeviceScreen';
 import { Colors } from '../src/theme/colors';
 import { repository } from '../src/services/persistence';
@@ -102,6 +103,7 @@ function GameView() {
   const [showPassScreen, setShowPassScreen] = useState(false);
   const [nextPlayerName, setNextPlayerName] = useState('');
   const prevActiveRef = React.useRef<number>(-1);
+  const [showChart, setShowChart] = useState(false);
 
   useEffect(() => {
     if (!state || mode !== 'hotseat') return;
@@ -139,6 +141,14 @@ function GameView() {
       <TableLayout />
       <ActionButtons />
       <ResultOverlay />
+      <TouchableOpacity
+        testID="rfi-chart-button"
+        style={styles.chartButton}
+        onPress={() => setShowChart(true)}
+      >
+        <Text style={styles.chartButtonText}>RFI</Text>
+      </TouchableOpacity>
+      <PreflopChartModal visible={showChart} onClose={() => setShowChart(false)} />
     </View>
   );
 }
@@ -252,5 +262,22 @@ const styles = StyleSheet.create({
   bottomRow: {
     alignItems: 'center',
     paddingBottom: 8,
+  },
+  chartButton: {
+    position: 'absolute',
+    bottom: 80,
+    right: 12,
+    backgroundColor: '#1E3A5F',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  chartButtonText: {
+    color: '#3B82F6',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
 });
