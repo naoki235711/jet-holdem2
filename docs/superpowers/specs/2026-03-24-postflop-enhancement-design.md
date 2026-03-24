@@ -38,8 +38,10 @@ decide(ctx)
             ├─ estimateEquity(holeCards, community, numOpponents)
             ├─ calcPotOdds(callAmount, pot)
             ├─ detectBoardTexture(community)
-            └─ selectAction(equity, potOdds, boardTexture, position, spr)
+            └─ selectAction(equity, potOdds, boardTexture, isIP, spr)
 ```
+
+`position` は `isIP: boolean` で表現する（IPなら `true`）。
 
 ---
 
@@ -56,24 +58,35 @@ export function estimateEquity(
 ): number  // 0.0 〜 1.0
 ```
 
+**`numOpponents` の定義:** `gameState.players` のうち `status === 'active' || status === 'allIn'` のプレイヤー数からBot自身を除いた値。フォールドまたはアウトのプレイヤーは含めない。
+
 ### アルゴリズム（モンテカルロ）
 
 1. 残デッキを構築（52枚 − holeCards − community）
 2. N回シミュレーション:
    - 残デッキをFisher-Yatesシャッフル
    - 各相手に2枚ずつ配る
-   - コミュニティを5枚まで補完（フロップなら+2枚、ターンなら+1枚）
-   - 全員の7枚を既存の `evaluate7Cards()` で評価
+   - コミュニティを5枚まで補完する:
+     - `community.length === 5`（リバー）の場合はランアウトをスキップ
+     - `community.length === 4`（ターン）の場合は1枚追加
+     - `community.length === 3`（フロップ）の場合は2枚追加
+   - 全員の7枚（holeCards[2] + community[5]）を既存の `evaluate7Cards()` で評価
    - ヒーローが勝ち or 引き分けならカウント
 3. `wins / N` を返す
 
+**オールイン相手のカード近似:** オールインしている相手の実際のホールカードは非公開のため、シミュレーションでは残デッキ（コミュニティのみ除外）からランダムにサンプリングする。実際には相手のホールカードが残デッキに存在しないため重複する可能性があるが、この近似は標準誤差と同程度の影響しか持たないため許容する。
+
+**リバーの非効率性:** `community.length === 5` の場合、エクイティは決定的（ランダム要素ゼロ）なため500回シミュレーションは冗長となる。現実装では同じ結果をN回計算する既知の非効率性として受け入れ、将来の最適化課題とする（Section 8 参照）。
+
 ### パフォーマンス目安（iPhone）
 
-| シミュレーション数 | 所要時間 | 精度（標準誤差） |
+| シミュレーション数 | 所要時間 | 精度（標準誤差）※ |
 |-----------------|---------|----------------|
 | 200回 | ~10ms | ±3.5% |
 | 500回 | ~25ms | ±2.2% |
 | 1000回 | ~50ms | ±1.6% |
+
+※ 標準誤差は `p=0.5` のベルヌーイ分布における最大値 `sqrt(p(1-p)/n)`。エクイティが偏っている場合（例: 0.9）は実際の誤差はこれより小さい。
 
 デフォルト500回。既存の1秒ディレイ内に十分収まる。外部ライブラリ依存なし。
 
@@ -90,8 +103,10 @@ export function detectBoardTexture(community: Card[]): BoardTexture
 | 条件 | テクスチャ |
 |------|----------|
 | モノトーン（3枚以上同スート） | `wet` |
-| コネクテッド（連続する3枚が存在） | `wet` |
+| コネクテッド（**厳密に**連続する3枚のランクが存在） | `wet` |
 | それ以外 | `dry` |
+
+**連続判定の簡略化:** ガットショットドロー（例: 8-9-J）やワンギャップコネクター（例: 7-9-T）はストレートドローとして強いボードだが、実装の複雑さを避けるため `dry` として扱う。この簡略化は意図的な近似であり、将来のチューニング課題とする。
 
 `wet` ボードではピュアブラフ頻度を半分に下げる（後述）。
 
@@ -103,11 +118,19 @@ export function detectBoardTexture(community: Card[]): BoardTexture
 
 ```typescript
 function calcPotOdds(callAmount: number, pot: number): number {
+  // callAmount / (pot + callAmount) = 標準ポットオッズ（全投資額に対する割合）
   return callAmount / (pot + callAmount);
 }
 
-function calcSPR(botChips: number, maxOpponentChips: number, pot: number): number {
-  return Math.min(botChips, maxOpponentChips) / pot;
+function calcSPR(botChips: number, gameState: GameState, botSeat: number): number {
+  // effectiveStack = bot chips vs 相手の中で最大チップ数（非フォールド・非アウト）
+  const opponentChips = gameState.players
+    .filter(p => p.seat !== botSeat && p.status !== 'out' && p.status !== 'folded')
+    .map(p => p.chips);
+  if (opponentChips.length === 0) return Infinity; // アクティブな相手なし → SPR未定義、deep扱い
+  const effectiveStack = Math.min(botChips, Math.max(...opponentChips));
+  const totalPot = gameState.pots.reduce((sum, p) => sum + p.amount, 0);
+  return effectiveStack / totalPot;
 }
 ```
 
@@ -116,26 +139,30 @@ function calcSPR(botChips: number, maxOpponentChips: number, pot: number): numbe
 | 優先順位 | 条件 | アクション |
 |---------|------|-----------|
 | 1 | SPR < 2 かつ equity > 0.50 | **All-in** |
-| 2 | equity > 0.70 かつ レイズ可能 | **レイズ**（pot × 0.75） |
-| 3 | equity > 0.70 かつ OOP かつ `random < 0.3` | **レイズ**（チェックレイズ） |
+| 2 | equity > 0.70 かつ OOP かつ `random < 0.3` | **レイズ**（OOP再レイズ） |
+| 3 | equity > 0.70 かつ レイズ可能 | **レイズ**（pot × 0.75） |
 | 4 | equity > potOdds | **コール** |
 | 5 | equity < 0.25 かつ IP かつ `random < 0.15` | **レイズ**（ブラフ） |
 | 6 | その他 | **フォールド** |
+
+> **優先順位 2 について:** OOP でレイズ（再レイズ）するケースを、一般的なバリューレイズ（優先順位 3）より先に評価する。これによりOOP強ハンドで30%の確率で再レイズが選択される。ベット直面時に「チェックしてから再レイズ」（チェックレイズ）は単一の `decide()` 呼び出しでは実現できないため、ここでは再レイズとして表現する。
 
 ### チェック可能時（`currentBet === 0`）
 
 | 優先順位 | 条件 | アクション |
 |---------|------|-----------|
 | 1 | SPR < 2 かつ equity > 0.50 | **All-in** |
-| 2 | equity > 0.65 | **ベット**（pot × 0.75） |
-| 3 | equity > 0.65 かつ OOP かつ `random < 0.3` | **チェック**（チェックレイズ待ち） |
+| 2 | equity > 0.65 かつ OOP かつ `random < 0.3` | **チェック**（チェックレイズ待ち） |
+| 3 | equity > 0.65 | **ベット**（pot × 0.75） |
 | 4 | equity > 0.45 | **ベット**（pot × 0.5） |
 | 5 | equity > 0.30 かつ IP かつ `random < 0.4` | **ベット**（pot × 0.5、セミブラフ） |
 | 6 | equity < 0.25 かつ IP かつ ドライボード かつ `random < 0.2` | **ベット**（pot × 0.5、ピュアブラフ） |
-| 6' | equity < 0.25 かつ IP かつ ウェットボード かつ `random < 0.1` | **ベット**（pot × 0.5、ピュアブラフ、頻度半減） |
+| 6' | equity < 0.25 かつ IP かつ ウェットボード かつ `random < 0.1` | **ベット**（pot × 0.5、ピュアブラフ頻度半減） |
 | 7 | その他 | **チェック** |
 
-> **注:** 優先順位3（チェックレイズ待ち）は優先順位2の前に評価する。equity > 0.65 + OOP + 確率条件を満たした場合のみ、強い手を持ちながらあえてチェックする。
+> **優先順位 2 について:** equity > 0.65 + OOP のケースを、一般的なベット（優先順位 3）より先に評価する。強ハンドをOOPで30%の確率でチェックすることで、相手のベットを誘うチェックレイズラインを作る。次の `decide()` 呼び出しで相手がベットしていれば優先順位2（OOP再レイズ）が適用される。
+
+> **セミブラフ（優先順位 5）とピュアブラフ（優先順位 6/6'）の非対称性:** セミブラフはウェットボードでも equity > 0.30 のドローアウトがあるため頻度を下げない。ピュアブラフ（equity < 0.25）はウェットボードでは相手のレンジが強く連結しているためフォールドエクイティが低く、頻度を半減する。
 
 ### ベットサイズ補正
 
@@ -148,8 +175,8 @@ function calcSPR(botChips: number, maxOpponentChips: number, pot: number): numbe
 
 既存設計（`2026-03-24-bot-player-design.md` Section 5）を継承：
 
-- **IP (In Position)**: BotのseatがディーラーからBB方向で最後にアクションする
-- **OOP (Out of Position)**: それ以外
+- **IP（`isIP = true`）**: BotのseatがディーラーからBB方向で最後にアクションする
+- **OOP（`isIP = false`）**: それ以外
 
 ---
 
@@ -157,18 +184,23 @@ function calcSPR(botChips: number, maxOpponentChips: number, pot: number): numbe
 
 ### `equityCalculator.test.ts`
 
-- AA vs ランダムハンド（フロップ）: equity > 0.75 を期待
-- 72o vs ランダムハンド（フロップ）: equity < 0.40 を期待
-- ナッツフラッシュ（5枚コミュ確定）: equity ≈ 1.0
-- 再現性: `numSimulations = 1000` で標準誤差 < 0.025
+- **AA vs 1相手（フロップ）:** equity > 0.75
+- **72o vs 1相手（フロップ）:** equity < 0.40
+- **ナッツフラッシュ（リバー確定）:**
+  ```
+  holeCards: ['Ah', 'Kh'], community: ['Qh', 'Jh', '2h', '5d', '8c']
+  → equity === 1.0（5枚確定、ランアウトなし）
+  ```
+- **再現性:** `numSimulations = 1000` で標準誤差 < 0.025
 
 ### `postflopStrategy.test.ts`
 
-- Strong hand（AA、フロップ） + チェック可能 → ベットまたはチェック（レイズ待ち）
-- Weak hand（72o、フロップ） + ベット直面 → フォールド（ポットオッズ < エクイティ）
-- SPR < 2 + equity > 0.50 → All-in
-- IP + Air + ドライボード → 20%でブラフベット（確率的テスト）
-- OOP + Strong + チェック可能 → 30%でチェック（確率的テスト）
+- **Strong hand（フロップ、チェック可能、IP）** → ベット
+- **Strong hand（フロップ、チェック可能、OOP）** → チェックまたはベット（30%でチェック）
+- **Weak hand（フロップ、ベット直面、ポットオッズ > エクイティ）** → フォールド
+- **SPR < 2 + equity > 0.50 + ベット直面** → All-in
+- **IP + equity < 0.25 + ドライボード（確率的テスト）** → ベット確率 ≈ 20%
+- **OOP + equity < 0.25 + チェック可能** → チェック（ブラフしない）
 
 ---
 
@@ -176,6 +208,8 @@ function calcSPR(botChips: number, maxOpponentChips: number, pot: number): numbe
 
 - vs 3ベット / 4ベット プリフロップ改善
 - マルチウェイポット対応（現在は全相手を1人として計算）
+- リバーでの決定的エクイティ計算（現状はN回同一計算の非効率実装）
 - ターン・リバーでの異なるエクイティ閾値チューニング
+- ガットショット/ワンギャップコネクターのウェットボード判定
 - ブラフ頻度のUI調整
 - CFR事前計算テーブル（レベルC完全達成）
