@@ -41,6 +41,18 @@ describe('LobbyClient', () => {
       const sent = decodeLastSent(transport);
       expect(sent).toEqual({ type: 'join', protocolVersion: 1, playerName: 'Alice' });
     });
+
+    it('connectAndWait connects but does not auto-send join', async () => {
+      await client.connectAndWait('host-1');
+      const joinMessages = transport.sentMessages.filter((m: any) => {
+        const cm = new ChunkManager();
+        const json = cm.decode('any', m.data);
+        if (!json) return false;
+        const parsed = JSON.parse(json);
+        return parsed.type === 'join';
+      });
+      expect(joinMessages).toHaveLength(0);
+    });
   });
 
   describe('joinResponse handling', () => {
