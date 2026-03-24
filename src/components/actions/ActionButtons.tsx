@@ -9,7 +9,7 @@ import { calculatePresets } from './presetCalculator';
 import { Colors } from '../../theme/colors';
 
 export function ActionButtons() {
-  const { state, mode, viewingSeat, doAction, getActionInfo, preAction, setPreAction } = useGame();
+  const { state, mode, viewingSeat, doAction, getActionInfo, preAction, setPreAction, service } = useGame();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [raiseValue, setRaiseValue] = useState(0);
 
@@ -17,10 +17,16 @@ export function ActionButtons() {
   const isMyTurn = state?.activePlayer === actingSeat && state?.activePlayer >= 0;
   const isBleMode = mode === 'ble-host' || mode === 'ble-client';
 
+  const isBotTurn = (() => {
+    if (!state || state.activePlayer < 0) return false;
+    const botSeats = service.getBotSeats?.() ?? new Set<number>();
+    return botSeats.has(state.activePlayer);
+  })();
+
   const info = useMemo(() => {
-    if (!state || !isMyTurn) return null;
+    if (!state || !isMyTurn || isBotTurn) return null;  // ← isBotTurn追加
     return getActionInfo(actingSeat);
-  }, [state, isMyTurn, actingSeat, getActionInfo]);
+  }, [state, isMyTurn, isBotTurn, actingSeat, getActionInfo]);
 
   useEffect(() => {
     if (info) setRaiseValue(info.minRaise);
