@@ -15,11 +15,19 @@ export interface GameService {
   getState(): GameState;
   getActionInfo(seat: number): ActionInfo;
 
-  startGame(playerNames: string[], blinds: Blinds, initialChips: number, savedChips?: Record<string, number>): void;
+  startGame(
+    playerNames: string[],
+    blinds: Blinds,
+    initialChips: number,
+    savedChips?: Record<string, number>,
+    botCount?: number,
+  ): void;
   startRound(): void;
   handleAction(seat: number, action: PlayerAction): ActionResult;
   resolveShowdown(): ShowdownResult;
   prepareNextRound(): void;
 
   subscribe(listener: (state: GameState) => void): () => void;
+
+  getBotSeats?(): ReadonlySet<number>;
 }
