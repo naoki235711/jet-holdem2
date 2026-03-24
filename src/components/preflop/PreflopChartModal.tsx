@@ -18,15 +18,14 @@ interface Props {
 }
 
 export function PreflopChartModal({ visible, onClose }: Props) {
-  if (!visible) return null;
-
   return (
     <Modal
       visible={visible}
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.screen} testID="preflop-chart-modal">
+      {visible && (
+        <View style={styles.screen} testID="preflop-chart-modal">
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleBlock}>
@@ -67,7 +66,8 @@ export function PreflopChartModal({ visible, onClose }: Props) {
             <Text style={styles.tierNoteText}>● 75–99%   ● 50–74% (薄色)</Text>
           </View>
         </ScrollView>
-      </View>
+        </View>
+      )}
     </Modal>
   );
 }
