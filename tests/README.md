@@ -47,7 +47,7 @@ tests/
 ├── gameEngine/          # エンジンUnitテスト（6ファイル）
 │   └── integration/     # エンジン内結合テスト（1ファイル）
 ├── services/            # サービスUnitテスト（1ファイル）
-├── ble/                 # BLEテスト（11ファイル）
+├── ble/                 # BLEテスト（12ファイル）
 │   └── integration/     # BLE統合テスト（2ファイル）
 ├── persistence/         # Persistenceテスト（3ファイル）
 ├── hooks/               # Hooksテスト（1ファイル）
@@ -96,13 +96,14 @@ Jest プロジェクト: `engine` / 環境: Node.js / フレームワーク: ts-
 |---------|-----------|
 | `tests/services/LocalGameService.test.ts` | LocalGameService（UIとエンジンの橋渡し、エラーハンドリング） |
 
-### 4. Hooks Unit テスト（1ファイル）
+### 4. Hooks Unit テスト（2ファイル）
 
 | ファイル | テスト対象 |
 |---------|-----------|
 | `tests/hooks/useActionTimer.test.tsx` | アクションタイマーフック（タイムアウト・リセット・無効化） |
+| `tests/hooks/useGame.test.tsx` | useGame フック（コンテキスト外エラー・正常系） |
 
-### 5. BLE Unit テスト（11ファイル）
+### 5. BLE Unit テスト（12ファイル）
 
 Jest プロジェクト: `engine` / 環境: Node.js
 
@@ -119,6 +120,7 @@ Jest プロジェクト: `engine` / 環境: Node.js
 | `tests/ble/BleClientGameService.test.ts` | BLEクライアントゲームサービス |
 | `tests/ble/BleHostTransportImpl.test.ts` | BLEホストトランスポート実装 |
 | `tests/ble/BleClientTransportImpl.test.ts` | BLEクライアントトランスポート実装 |
+| `tests/ble/transportRegistry.test.ts` | トランスポートレジストリ（set/get/clear） |
 
 ### 6. BLE Integration テスト（2ファイル）
 
@@ -284,8 +286,8 @@ npx expo start --web --port 8081
 | ゲームエンジン | Unit | 6 |
 | ゲームエンジン | Integration | 1 |
 | サービス | Unit | 1 |
-| Hooks | Unit | 1 |
-| BLE | Unit | 11 |
+| Hooks | Unit | 2 |
+| BLE | Unit | 12 |
 | BLE | Integration | 2 |
 | Persistence | Unit | 3 |
 | UIコンポーネント | Unit | 20 |
@@ -293,7 +295,7 @@ npx expo start --web --port 8081
 | UI | Integration | 7 |
 | クロスレイヤー | Integration | 3 |
 | E2E | Playwright | 2 |
-| **合計** | — | **58** |
+| **合計** | — | **60** |
 
 ---
 
