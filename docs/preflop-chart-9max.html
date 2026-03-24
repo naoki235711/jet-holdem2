@@ -20,8 +20,8 @@
     --g2: #DC6B20; /* 8人 - Burnt Orange */
     --g3: #CA8A04; /* 6,7人 - Dark Gold */
     --g4: #16A34A; /* 4,5人 - Emerald */
-    --g5: #0891B2; /* 3人 - Teal */
-    --g6: #2563EB; /* 2人 - Royal Blue */
+    --g5: #0D9488; /* 3人 - Teal Green */
+    --g6: #3B82F6; /* 2人 - Vivid Blue */
     --g7: #7C3AED; /* 1人 - Violet */
     --fold: #1E293B; /* Fold - Dark slate */
   }
@@ -140,8 +140,8 @@
   .g2 { background: var(--g2); color: #FEF3C7; }
   .g3 { background: var(--g3); color: #FEF9C3; }
   .g4 { background: var(--g4); color: #DCFCE7; }
-  .g5 { background: var(--g5); color: #CFFAFE; }
-  .g6 { background: var(--g6); color: #DBEAFE; }
+  .g5 { background: var(--g5); color: #CCFBF1; }
+  .g6 { background: var(--g6); color: #EFF6FF; }
   .g7 { background: var(--g7); color: #EDE9FE; }
   .fold-cell { background: var(--fold); color: #475569; }
 
@@ -247,13 +247,13 @@
 <p class="subtitle">Open Raise Range by Position</p>
 
 <div class="legend">
-  <div class="legend-item"><div class="legend-swatch" style="background:var(--g1)"></div>8人・強ハンド<span class="legend-pos">(UTG premium)</span></div>
-  <div class="legend-item"><div class="legend-swatch" style="background:var(--g2)"></div>後ろに8人<span class="legend-pos">(UTG)</span></div>
-  <div class="legend-item"><div class="legend-swatch" style="background:var(--g3)"></div>後ろに6,7人<span class="legend-pos">(UTG+1/+2)</span></div>
-  <div class="legend-item"><div class="legend-swatch" style="background:var(--g4)"></div>後ろに4,5人<span class="legend-pos">(HJ/LJ)</span></div>
-  <div class="legend-item"><div class="legend-swatch" style="background:var(--g5)"></div>後ろに3人<span class="legend-pos">(CO)</span></div>
-  <div class="legend-item"><div class="legend-swatch" style="background:var(--g6)"></div>後ろに2人<span class="legend-pos">(BTN)</span></div>
-  <div class="legend-item"><div class="legend-swatch" style="background:var(--g7)"></div>後ろに1人<span class="legend-pos">(SB)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g1)"></div>UTG Strong<span class="legend-pos">(後ろに8人 premium)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g2)"></div>UTG<span class="legend-pos">(後ろに8人)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g3)"></div>UTG1+UTG2<span class="legend-pos">(後ろに6・7人)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g4)"></div>LJ+HJ<span class="legend-pos">(後ろに4・5人)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g5)"></div>CO<span class="legend-pos">(後ろに3人)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g6)"></div>BTN<span class="legend-pos">(後ろに2人)</span></div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--g7)"></div>SB<span class="legend-pos">(後ろに1人)</span></div>
   <div class="legend-item"><div class="legend-swatch" style="background:var(--fold)"></div>Fold</div>
 </div>
 
@@ -280,30 +280,30 @@ const RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
 // Upper-right = suited, diagonal = pairs, lower-left = offsuit
 const M = [
 //  A  K  Q  J  T  9  8  7  6  5  4  3  2
-  [ 1, 1, 1, 2, 2, 3, 4, 4, 4, 3, 4, 4, 5], // A
-  [ 1, 1, 2, 2, 3, 4, 5, 5, 5, 6, 6, 6, 7], // K
-  [ 2, 3, 1, 2, 3, 4, 5, 6, 6, 7, 7, 7, 0], // Q
-  [ 3, 3, 4, 2, 2, 3, 5, 6, 7, 7, 0, 0, 0], // J
-  [ 4, 4, 4, 4, 2, 3, 4, 5, 6, 0, 0, 0, 0], // T
-  [ 5, 5, 5, 5, 5, 3, 4, 5, 6, 7, 0, 0, 0], // 9
-  [ 6, 6, 6, 6, 6, 6, 3, 4, 5, 6, 0, 0, 0], // 8
-  [ 6, 7, 7, 7, 7, 7, 6, 4, 5, 6, 7, 0, 0], // 7
-  [ 7, 7, 0, 0, 0, 7, 7, 6, 4, 5, 6, 7, 0], // 6
-  [ 7, 0, 0, 0, 0, 0, 0, 7, 6, 5, 6, 7, 0], // 5
-  [ 7, 0, 0, 0, 0, 0, 0, 0, 7, 7, 5, 6, 7], // 4
-  [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 6, 7], // 3
-  [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7], // 2
+  [ 1, 1, 1, 2, 2, 2, 3, 4, 4, 4, 4, 4, 5], // A
+  [ 1, 1, 2, 2, 2, 4, 6, 6, 6, 7, 7, 7, 7], // K
+  [ 2, 2, 1, 3, 3, 4, 6, 7, 7, 7, 7, 7, 7], // Q
+  [ 2, 4, 5, 2, 3, 4, 6, 7, 7, 7, 0, 0, 0], // J
+  [ 3, 5, 6, 6, 2, 4, 6, 7, 7, 0, 0, 0, 0], // T
+  [ 3, 7, 7, 7, 7, 2, 6, 7, 7, 0, 0, 0, 0], // 9
+  [ 5, 7, 7, 7, 7, 7, 2, 7, 7, 0, 0, 0, 0], // 8
+  [ 5, 7, 7, 0, 0, 0, 0, 3, 7, 7, 0, 0, 0], // 7
+  [ 6, 7, 0, 0, 0, 0, 0, 0, 3, 7, 0, 0, 0], // 6
+  [ 6, 7, 0, 0, 0, 0, 0, 0, 0, 4, 7, 0, 0], // 5
+  [ 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0], // 4
+  [ 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0], // 3
+  [ 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5], // 2
 ];
 
 const GROUP_NAMES = {
   0: 'Fold',
-  1: '8人・強ハンド (UTG premium)',
-  2: '後ろに8人 (UTG)',
-  3: '後ろに6,7人 (UTG+1/+2)',
-  4: '後ろに4,5人 (HJ/LJ)',
-  5: '後ろに3人 (CO)',
-  6: '後ろに2人 (BTN)',
-  7: '後ろに1人 (SB)',
+  1: 'UTG Strong (後ろに8人 premium)',
+  2: 'UTG (後ろに8人)',
+  3: 'UTG1+UTG2 (後ろに6・7人)',
+  4: 'LJ+HJ (後ろに4・5人)',
+  5: 'CO (後ろに3人)',
+  6: 'BTN (後ろに2人)',
+  7: 'SB (後ろに1人)',
 };
 
 const GROUP_CLASS = {
