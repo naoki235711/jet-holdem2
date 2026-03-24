@@ -150,16 +150,22 @@ Jest プロジェクト: `engine` / 環境: Node.js
 | `tests/integration/persistenceLifecycle.integration.test.ts` | 永続化のライフサイクル |
 | `tests/integration/repositoryResilience.integration.test.ts` | リポジトリの耐障害性 |
 
-### 9. E2E テスト - Playwright（4ファイル）
+### 9. Hooks Unit テスト（1ファイル）
+
+Jest プロジェクト: `ui` / 環境: React Native
+
+| ファイル | テスト対象 |
+|---------|-----------|
+| `tests/hooks/useActionTimer.test.tsx` | useActionTimer フック |
+
+### 10. E2E テスト - Playwright（2ファイル）
 
 ブラウザ上でExpo Webサーバーに接続してテスト / Base URL: `http://localhost:8081`
 
 | ファイル | テスト対象 |
 |---------|-----------|
-| `e2e/game-flow.spec.ts` | プリフロップからショーダウンまでの全体フロー |
 | `e2e/hotseat.spec.ts` | ホットシートモードのブラウザテスト |
 | `e2e/lobby.spec.ts` | ロビー画面 |
-| `e2e/actions.spec.ts` | アクションボタンの操作 |
 
 ---
 
@@ -174,6 +180,7 @@ tests/
 │   └── integration/     # BLE統合テスト（2ファイル）
 ├── persistence/         # Persistenceテスト（3ファイル）
 ├── integration/         # クロスレイヤー統合テスト（3ファイル）
+├── hooks/               # Hooksテスト（1ファイル）
 └── ui/
     ├── setup.js         # React Native テストセットアップ
     ├── helpers/         # テストヘルパー（renderWithGame等）
@@ -185,7 +192,7 @@ tests/
 e2e/
 ├── playwright.config.ts # Playwright設定
 ├── helpers.ts           # E2Eヘルパー関数
-└── *.spec.ts            # E2Eテスト（4ファイル）
+└── *.spec.ts            # E2Eテスト（2ファイル）
 ```
 
 ---
@@ -224,8 +231,9 @@ npx expo start --web --port 8081
 | UIコンポーネント | Unit | 20 |
 | UIコンテキスト | Unit | 1 |
 | UI統合 | Integration | 7 |
-| ブラウザE2E | Playwright | 4 |
-| **合計** | — | **59** |
+| フック | Unit | 1 |
+| ブラウザE2E | Playwright | 2 |
+| **合計** | — | **58** |
 
 ---
 
