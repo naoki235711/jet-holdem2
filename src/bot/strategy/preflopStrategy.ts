@@ -141,10 +141,23 @@ function decideFacingRaise(
 }
 
 function decideSqueezeOrFold(
-  _group: number, _numCallers: number, _bbDepth: number,
-  _currentBet: number, _player: { chips: number; bet: number },
+  group: number,
+  numCallers: number,
+  bbDepth: number,
+  currentBet: number,
+  player: { chips: number; bet: number },
 ): PlayerAction {
-  return { action: 'fold' }; // TODO: Task 5
+  // ショートスタック（< 15BB）: premium のみ push
+  if (bbDepth < 15) {
+    if (group <= 1) return { action: 'allIn' };
+    return { action: 'fold' };
+  }
+
+  // 通常スタック
+  if (group <= 1) return makeRaise(currentBet * 3.5, player); // バリュースクイーズ
+  // コーラー 1 人時のみブラフスクイーズ（2 人以上はブラフなし）
+  if (group <= 3 && numCallers === 1 && Math.random() < 0.25) return makeRaise(currentBet * 3.5, player);
+  return { action: 'fold' };
 }
 
 function decideFacingReraise(
