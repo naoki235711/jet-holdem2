@@ -8,14 +8,15 @@ const SUIT_SYMBOLS: Record<Suit, string> = { h: '♥', d: '♦', s: '♠', c: '�
 const SUIT_COLORS: Record<Suit, string> = { h: '#EF4444', d: '#EF4444', s: '#FFFFFF', c: '#FFFFFF' };
 
 const SIZES = {
-  hand: { width: 25, height: 35, fontSize: 10 },
+  hand:      { width: 25, height: 35, fontSize: 10 },
+  small:     { width: 18, height: 26, fontSize: 8  },
   community: { width: 45, height: 65, fontSize: 18 },
 };
 
 interface PlayingCardProps {
   card: Card;
   faceUp: boolean;
-  size?: 'hand' | 'community';
+  size?: 'hand' | 'small' | 'community';
 }
 
 export function PlayingCard({ card, faceUp, size = 'hand' }: PlayingCardProps) {

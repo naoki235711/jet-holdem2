@@ -9,8 +9,11 @@ import { HostSetupForm } from './HostSetupForm';
 import { JoinSetupForm } from './JoinSetupForm';
 import { repository } from '../../services/persistence';
 
-const PLAYER_COUNTS = [2, 3, 4];
-const DEFAULT_NAMES = ['Player 0', 'Player 1', 'Player 2', 'Player 3'];
+const PLAYER_COUNTS = [2, 3, 4, 5, 6, 7, 8, 9];
+const DEFAULT_NAMES = [
+  'Player 0', 'Player 1', 'Player 2', 'Player 3',
+  'Player 4', 'Player 5', 'Player 6', 'Player 7', 'Player 8',
+];
 
 export function LobbyView() {
   const router = useRouter();
@@ -284,7 +287,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
   },
-  countRow: { flexDirection: 'row', gap: 12 },
+  countRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   countBtn: {
     width: 48,
     height: 48,

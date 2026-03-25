@@ -8,7 +8,7 @@ import {
 } from './LobbyProtocol';
 
 const LOBBY_CHARACTERISTIC = 'lobby';
-const MAX_PLAYERS = 4; // host included
+const MAX_PLAYERS = 9; // host included
 
 type LobbyHostState = 'idle' | 'advertising' | 'waitingForPlayers' | 'gameStarting';
 
@@ -249,7 +249,7 @@ export class LobbyHost {
 
   private findNextSeat(): number {
     const taken = new Set(Array.from(this.players.values()).map((p) => p.seat));
-    for (let s = 1; s <= 3; s++) {
+    for (let s = 1; s <= 8; s++) {
       if (!taken.has(s)) return s;
     }
     return -1; // Should never happen if size check is correct

@@ -12,6 +12,7 @@ import { BleSpectatorGameService } from '../src/services/ble/BleSpectatorGameSer
 import { getHostTransport, getClientTransport, clearHostTransport, clearClientTransport, getLobbyHost, clearLobbyHost } from '../src/services/ble/transportRegistry';
 import { useGame } from '../src/hooks/useGame';
 import { PlayerSeat } from '../src/components/table/PlayerSeat';
+import { getTableSlots } from '../src/components/table/tableSlots';
 import { CommunityCards } from '../src/components/table/CommunityCards';
 import { PotDisplay } from '../src/components/table/PotDisplay';
 import { ActionButtons } from '../src/components/actions/ActionButtons';
@@ -21,45 +22,47 @@ import { PassDeviceScreen } from '../src/components/common/PassDeviceScreen';
 import { Colors } from '../src/theme/colors';
 import { repository } from '../src/services/persistence';
 
-function TableLayout() {
+export function TableLayout() {
   const { state, viewingSeat } = useGame();
   if (!state) return null;
 
-  const playerCount = state.players.length;
   const allSeats = state.players.map(p => p.seat);
-
   const myIdx = allSeats.indexOf(viewingSeat);
-  const seatAt = (offset: number) => {
-    if (myIdx === -1) return -1;
-    return allSeats[(myIdx + offset) % playerCount];
-  };
+  const compact = allSeats.length >= 5;
+  const slots = getTableSlots(allSeats, myIdx);
 
-  const bottomSeat = seatAt(0);
-  const leftSeat = playerCount >= 3 ? seatAt(1) : -1;
-  const topSeat = playerCount >= 2 ? seatAt(playerCount === 2 ? 1 : 2) : -1;
-  const rightSeat = playerCount >= 4 ? seatAt(3) : -1;
+  const seat = (name: keyof typeof slots) =>
+    slots[name] !== undefined ? (
+      <PlayerSeat seat={slots[name]!} compact={compact} />
+    ) : null;
 
   return (
     <View style={styles.table}>
       <View style={styles.topRow}>
-        {topSeat >= 0 && <PlayerSeat seat={topSeat} />}
+        {seat('TL')}
+        {seat('TC')}
+        {seat('TR')}
       </View>
 
       <View style={styles.middleRow}>
-        <View style={styles.sideSlot}>
-          {leftSeat >= 0 && <PlayerSeat seat={leftSeat} />}
+        <View style={styles.sideCol}>
+          {seat('LT')}
+          {seat('LB')}
         </View>
         <View style={styles.center}>
           <PotDisplay />
           <CommunityCards />
         </View>
-        <View style={styles.sideSlot}>
-          {rightSeat >= 0 && <PlayerSeat seat={rightSeat} />}
+        <View style={styles.sideCol}>
+          {seat('RT')}
+          {seat('RB')}
         </View>
       </View>
 
       <View style={styles.bottomRow}>
-        {bottomSeat >= 0 && <PlayerSeat seat={bottomSeat} />}
+        {seat('BL')}
+        {seat('BC')}
+        {seat('BR')}
       </View>
     </View>
   );
@@ -270,7 +273,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   topRow: {
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    gap: 8,
     paddingTop: 8,
   },
   middleRow: {
@@ -278,9 +284,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sideSlot: {
-    width: 80,
+  sideCol: {
+    minWidth: 56,
     alignItems: 'center',
+    gap: 4,
   },
   center: {
     flex: 1,
@@ -288,7 +295,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   bottomRow: {
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    gap: 8,
     paddingBottom: 8,
   },
   chartButton: {

@@ -32,11 +32,11 @@ describe('LobbyView', () => {
     expect(screen.getByText('Jet Holdem')).toBeTruthy();
   });
 
-  it('renders player count selection (2, 3, 4)', () => {
+  it('renders player count selection (2–9)', () => {
     render(<LobbyView />);
-    expect(screen.getByText('2')).toBeTruthy();
-    expect(screen.getByText('3')).toBeTruthy();
-    expect(screen.getByText('4')).toBeTruthy();
+    [2, 3, 4, 5, 6, 7, 8, 9].forEach(n => {
+      expect(screen.getByText(String(n))).toBeTruthy();
+    });
   });
 
   it('shows correct number of name inputs for selected player count', () => {
@@ -115,6 +115,22 @@ describe('LobbyView', () => {
       pathname: '/ble-join',
       params: { playerName: 'Alice' },
     });
+  });
+
+  it('renders player count buttons 5 through 9', () => {
+    render(<LobbyView />);
+    expect(screen.getByTestId('count-btn-5')).toBeTruthy();
+    expect(screen.getByTestId('count-btn-6')).toBeTruthy();
+    expect(screen.getByTestId('count-btn-7')).toBeTruthy();
+    expect(screen.getByTestId('count-btn-8')).toBeTruthy();
+    expect(screen.getByTestId('count-btn-9')).toBeTruthy();
+  });
+
+  it('shows 9 name inputs when 9-player count is selected', () => {
+    render(<LobbyView />);
+    fireEvent.press(screen.getByTestId('count-btn-9'));
+    const inputs = screen.getAllByPlaceholderText(/Player/);
+    expect(inputs).toHaveLength(9);
   });
 
   describe('chip reset', () => {

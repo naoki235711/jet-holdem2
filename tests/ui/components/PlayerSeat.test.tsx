@@ -133,4 +133,37 @@ describe('PlayerSeat', () => {
     });
     expect(getByTestId('bet-outside-2')).toBeTruthy();
   });
+
+  it('applies compact container style when compact=true', () => {
+    const { getByTestId } = renderWithGame(<PlayerSeat seat={0} compact />, {
+      state: createMockGameState(),
+    });
+    expect(getByTestId('player-seat-0').props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ minWidth: 52 })]),
+    );
+  });
+
+  it('hides BOT badge when compact=true', () => {
+    const state = createMockGameState({
+      players: [
+        { seat: 0, name: 'Alice', chips: 990, status: 'active', bet: 0, cards: ['Ah', 'Kh'], isBot: true },
+        { seat: 1, name: 'Bob',   chips: 995, status: 'active', bet: 5,  cards: ['Td', 'Jd'] },
+        { seat: 2, name: 'Charlie', chips: 990, status: 'active', bet: 10, cards: ['7s', '8s'] },
+      ],
+    });
+    renderWithGame(<PlayerSeat seat={0} compact />, { state });
+    expect(screen.queryByTestId('bot-badge-0')).toBeNull();
+  });
+
+  it('shows BOT badge when compact is omitted for bot player', () => {
+    const state = createMockGameState({
+      players: [
+        { seat: 0, name: 'Alice', chips: 990, status: 'active', bet: 0, cards: ['Ah', 'Kh'], isBot: true },
+        { seat: 1, name: 'Bob',   chips: 995, status: 'active', bet: 5,  cards: ['Td', 'Jd'] },
+        { seat: 2, name: 'Charlie', chips: 990, status: 'active', bet: 10, cards: ['7s', '8s'] },
+      ],
+    });
+    renderWithGame(<PlayerSeat seat={0} />, { state });
+    expect(screen.getByTestId('bot-badge-0')).toBeTruthy();
+  });
 });
