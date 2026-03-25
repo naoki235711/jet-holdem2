@@ -87,6 +87,10 @@ export class BleClientGameService implements GameService {
     // no-op: host controls round lifecycle; stateUpdate syncs automatically
   }
 
+  advanceRunout(): void {
+    // no-op: host drives runout; client observes via stateUpdate
+  }
+
   subscribe(listener: (state: GameState) => void): () => void {
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
@@ -134,6 +138,7 @@ export class BleClientGameService implements GameService {
             status: p.status,
             bet: p.bet,
             cards: p.cards,
+            cardsRevealed: p.cardsRevealed,
           })),
           foldWin: msg.foldWin,
         };
