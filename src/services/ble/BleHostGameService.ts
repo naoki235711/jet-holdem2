@@ -41,7 +41,7 @@ export class BleHostGameService implements GameService {
     return {
       ...state,
       players: state.players.map(p =>
-        p.seat === this.hostSeat ? p : { ...p, cards: [] },
+        p.seat === this.hostSeat || p.cardsRevealed ? p : { ...p, cards: [] },
       ),
     };
   }
@@ -125,6 +125,13 @@ export class BleHostGameService implements GameService {
     this.notifyListeners();
   }
 
+  advanceRunout(): void {
+    if (!this.gameLoop) throw new Error('Game not started');
+    this.gameLoop.advanceRunout();
+    this.broadcastState();
+    this.notifyListeners();
+  }
+
   subscribe(listener: (state: GameState) => void): () => void {
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
@@ -152,7 +159,8 @@ export class BleHostGameService implements GameService {
         chips: p.chips,
         status: p.status,
         bet: p.bet,
-        cards: [] as Card[],
+        cards: p.cardsRevealed ? p.cards : [] as Card[],
+        cardsRevealed: p.cardsRevealed,
       })),
       minRaiseSize: this.gameLoop.getMinRaiseSize(),
       frozenSeats: Array.from(this.frozenSeats.keys()),
@@ -319,7 +327,8 @@ export class BleHostGameService implements GameService {
         chips: p.chips,
         status: p.status,
         bet: p.bet,
-        cards: [] as Card[],
+        cards: p.cardsRevealed ? p.cards : [] as Card[],
+        cardsRevealed: p.cardsRevealed,
       })),
       minRaiseSize: this.gameLoop.getMinRaiseSize(),
       frozenSeats: Array.from(this.frozenSeats.keys()),
