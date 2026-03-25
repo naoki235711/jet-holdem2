@@ -14,7 +14,7 @@ type BleJoinLobbyProps = {
 
 type Phase = 'scanning' | 'connecting' | 'roleSelect' | 'waiting' | 'disconnected';
 
-const MAX_SEATS = 4;
+const MAX_SEATS = 9;
 
 export function BleJoinLobby({ playerName }: BleJoinLobbyProps) {
   const router = useRouter();

@@ -15,7 +15,7 @@ type BleHostLobbyProps = {
   initialChips: number;
 };
 
-const MAX_SEATS = 4;
+const MAX_SEATS = 9;
 
 export function BleHostLobby({ hostName, sb, bb, initialChips }: BleHostLobbyProps) {
   const router = useRouter();
