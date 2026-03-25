@@ -38,4 +38,9 @@ describe('PlayingCard', () => {
     const { getByTestId } = render(<PlayingCard card="Ah" faceUp size="community" />);
     expect(getByTestId('playing-card')).toBeTruthy();
   });
+
+  it('renders with small size when specified', () => {
+    const { getByTestId } = render(<PlayingCard card="Ah" faceUp size="small" />);
+    expect(getByTestId('playing-card')).toBeTruthy();
+  });
 });
