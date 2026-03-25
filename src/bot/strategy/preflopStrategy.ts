@@ -79,10 +79,33 @@ function makeRaise(amount: number, player: { chips: number; bet: number }): Play
 // ── Scenario handlers (stubs — to be replaced in Tasks 3–6) ──────────────────
 
 function decideRFI(
-  _group: number, _freqTier: number, _position: string, _bbDepth: number,
-  _numActive: number, _player: { chips: number; bet: number }, _bb: number,
+  group: number,
+  freqTier: number,
+  position: string,
+  bbDepth: number,
+  numActive: number,
+  player: { chips: number; bet: number },
+  bb: number,
 ): PlayerAction {
-  return { action: 'fold' }; // TODO: Task 3
+  // BB 特殊ケース: currentBet === bb（RFI シナリオ）では常にチェック
+  if (position === 'BB') return { action: 'check' };
+
+  // マルチウェイ補正: 参加者数が増えるほどレンジを絞る
+  const penaltyGroups = Math.max(0, numActive - 3);
+  const threshold = OPEN_THRESHOLD[position] ?? 2;
+  const effectiveThreshold = Math.max(1, threshold - penaltyGroups);
+
+  // ショートスタック（< 15BB）: push or fold
+  if (bbDepth < 15) {
+    if (group <= 2) return { action: 'allIn' }; // プレミアム + group 2 まで push
+    return { action: 'fold' };
+  }
+
+  // 通常スタック
+  if (group > effectiveThreshold) return { action: 'fold' };
+  const raiseProb = freqTier === 1 ? 1.0 : freqTier === 2 ? 0.87 : 0.62;
+  if (Math.random() < raiseProb) return makeRaise(bb * 3, player);
+  return { action: 'fold' };
 }
 
 function decideFacingRaise(
