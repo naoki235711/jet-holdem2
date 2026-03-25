@@ -257,18 +257,98 @@ describe('GameLoop', () => {
     });
 
     it('advances through all streets when only one active player (all others all-in)', () => {
-      // Set up a scenario where post-flop all but one player is all-in
       const players = makeGamePlayers(2);
-      players[1].chips = 10; // Very small stack, will go all-in
+      players[1].chips = 10;
       const game = new GameLoop(players, DEFAULT_BLINDS);
       game.startRound();
-      // SB (seat 0) calls, BB (seat 1) is all-in from blind posting or goes all-in
-      // Seat 0 (SB in heads-up) acts first preflop
-      game.handleAction(0, { action: 'allIn' }); // Seat 0 shoves
-      // This should force the game forward since only one active player remains
-      // Either seat 1 is all-in from BB or will auto-advance
-      // After both are all-in, phase should skip to showdown
-      expect(['flop', 'turn', 'river', 'showdown', 'roundEnd'].includes(game.phase)).toBe(true);
+      game.handleAction(0, { action: 'allIn' });
+      // With new behavior: enters allInFlop instead of jumping to showdown
+      expect(['allInFlop', 'allInTurn', 'allInRiver', 'showdown', 'roundEnd'].includes(game.phase)).toBe(true);
+    });
+
+    describe('all-in runout phases', () => {
+      function makeAllInGame(): GameLoop {
+        // Two players, seat 1 only has 10 chips (posts BB, immediately all-in)
+        const players = makeGamePlayers(2);
+        players[1].chips = 10;
+        return new GameLoop(players, DEFAULT_BLINDS);
+      }
+
+      it('enters allInFlop (not showdown) when all players are all-in after preflop', () => {
+        const game = makeAllInGame();
+        game.startRound();
+        // Heads-up: seat 0 (SB/dealer) acts first. Seat 1 only posted BB=10 (all chips), so allIn.
+        game.handleAction(0, { action: 'allIn' });
+        expect(game.phase).toBe('allInFlop');
+        expect(game.community).toHaveLength(3);
+      });
+
+      it('sets cardsRevealed=true on all non-folded players when entering allInFlop', () => {
+        const game = makeAllInGame();
+        game.startRound();
+        game.handleAction(0, { action: 'allIn' });
+        const nonFolded = game.players.filter(p => p.status !== 'folded' && p.status !== 'out');
+        expect(nonFolded.every(p => p.cardsRevealed === true)).toBe(true);
+      });
+
+      it('advanceRunout transitions allInFlop → allInTurn and deals turn', () => {
+        const game = makeAllInGame();
+        game.startRound();
+        game.handleAction(0, { action: 'allIn' });
+        expect(game.phase).toBe('allInFlop');
+        game.advanceRunout();
+        expect(game.phase).toBe('allInTurn');
+        expect(game.community).toHaveLength(4);
+      });
+
+      it('advanceRunout transitions allInTurn → allInRiver and deals river', () => {
+        const game = makeAllInGame();
+        game.startRound();
+        game.handleAction(0, { action: 'allIn' });
+        game.advanceRunout(); // → allInTurn
+        game.advanceRunout(); // → allInRiver
+        expect(game.phase).toBe('allInRiver');
+        expect(game.community).toHaveLength(5);
+      });
+
+      it('advanceRunout transitions allInRiver → showdown', () => {
+        const game = makeAllInGame();
+        game.startRound();
+        game.handleAction(0, { action: 'allIn' });
+        game.advanceRunout();
+        game.advanceRunout();
+        game.advanceRunout();
+        expect(game.phase).toBe('showdown');
+      });
+
+      it('advanceRunout throws when called outside allIn* phase', () => {
+        const game = new GameLoop(makeGamePlayers(2), DEFAULT_BLINDS);
+        game.startRound();
+        expect(() => game.advanceRunout()).toThrow('advanceRunout called in non-allIn phase');
+      });
+
+      it('resets cardsRevealed on startRound', () => {
+        const game = makeAllInGame();
+        game.startRound();
+        game.handleAction(0, { action: 'allIn' });
+        // cardsRevealed is now true; simulate next round
+        game.advanceRunout();
+        game.advanceRunout();
+        game.advanceRunout(); // showdown
+        game.resolveShowdown();
+        game.prepareNextRound();
+        // After startRound, cardsRevealed must be cleared
+        // We need chips to still be > 0 — adjust so seat 0 wins. Can't control outcome,
+        // but we can just check that startRound resets the flag.
+        // Give seat 1 enough chips for another round:
+        const seat1 = game.players.find(p => p.seat === 1)!;
+        seat1.chips = 100; // give them chips so game isn't over
+        seat1.status = 'active';
+        game.startRound();
+        game.players.forEach(p => {
+          expect(p.cardsRevealed).toBeUndefined();
+        });
+      });
     });
 
     it('advancePhase uses first active seat when dealer is not in active players', () => {

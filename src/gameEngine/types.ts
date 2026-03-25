@@ -36,9 +36,12 @@ export interface Player {
   bet: number;         // Current round bet
   cards: Card[];       // Hole cards (2 cards)
   isBot?: boolean;     // true if bot player, false or undefined if human
+  cardsRevealed?: boolean; // true when hole cards are shown face-up to all players
 }
 
-export type Phase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'roundEnd' | 'gameOver';
+export type Phase = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river'
+  | 'allInFlop' | 'allInTurn' | 'allInRiver'
+  | 'showdown' | 'roundEnd' | 'gameOver';
 
 export type ActionType = 'fold' | 'check' | 'call' | 'raise' | 'allIn';
 
