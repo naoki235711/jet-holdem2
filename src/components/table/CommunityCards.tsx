@@ -9,9 +9,11 @@ export function CommunityCards() {
   const { state } = useGame();
   const cards = state?.community ?? [];
 
+  const totalSlots = cards.length === 0 ? 0 : 5;
+
   return (
     <View style={styles.container}>
-      {Array.from({ length: 5 }, (_, i) => (
+      {Array.from({ length: totalSlots }, (_, i) => (
         <View key={i} testID="card-slot">
           {i < cards.length ? (
             <PlayingCard card={cards[i]} faceUp size="community" />
@@ -30,6 +32,7 @@ const styles = StyleSheet.create({
     gap: 6,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'stretch',
   },
   emptySlot: {
     width: 45,
