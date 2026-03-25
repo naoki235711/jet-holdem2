@@ -1,3 +1,10 @@
+// Mock expo-router to allow importing from app/ files in tests
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({}),
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+  Link: ({ children }) => children,
+}));
+
 // Mock AsyncStorage for UI tests
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
