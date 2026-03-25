@@ -48,11 +48,65 @@ function getPosition(state: GameState, seat: number): string {
   return posSeq[idx] ?? 'UTG';
 }
 
+function calcBBDepth(player: { chips: number }, state: GameState): number {
+  return player.chips / state.blinds.bb;
+}
+
+function countCallers(state: GameState, seat: number): number {
+  return state.players.filter(
+    p => p.bet > 0 && p.bet < state.currentBet && p.seat !== seat
+  ).length;
+}
+
+type PreflopScenario = 'rfi' | 'facing-raise' | 'squeeze' | 'facing-reraise';
+
+function detectPreflopScenario(state: GameState, seat: number): PreflopScenario {
+  const bb = state.blinds.bb;
+  const player = state.players.find(p => p.seat === seat)!;
+  const isRaised = state.currentBet > bb;
+  if (!isRaised) return 'rfi';
+  if (player.bet > bb && player.bet < state.currentBet) return 'facing-reraise';
+  if (countCallers(state, seat) >= 1) return 'squeeze';
+  return 'facing-raise';
+}
+
 function makeRaise(amount: number, player: { chips: number; bet: number }): PlayerAction {
   const available = player.chips + player.bet;
   if (amount >= available) return { action: 'allIn' };
   return { action: 'raise', amount };
 }
+
+// ── Scenario handlers (stubs — to be replaced in Tasks 3–6) ──────────────────
+
+function decideRFI(
+  _group: number, _freqTier: number, _position: string, _bbDepth: number,
+  _numActive: number, _player: { chips: number; bet: number }, _bb: number,
+): PlayerAction {
+  return { action: 'fold' }; // TODO: Task 3
+}
+
+function decideFacingRaise(
+  _group: number, _position: string, _bbDepth: number,
+  _currentBet: number, _player: { chips: number; bet: number },
+): PlayerAction {
+  return { action: 'fold' }; // TODO: Task 4
+}
+
+function decideSqueezeOrFold(
+  _group: number, _numCallers: number, _bbDepth: number,
+  _currentBet: number, _player: { chips: number; bet: number },
+): PlayerAction {
+  return { action: 'fold' }; // TODO: Task 5
+}
+
+function decideFacingReraise(
+  _group: number, _bbDepth: number,
+  _currentBet: number, _player: { chips: number; bet: number },
+): PlayerAction {
+  return { action: 'fold' }; // TODO: Task 6
+}
+
+// ── Main dispatcher ───────────────────────────────────────────────────────────
 
 export function decidePreflopAction(
   state: GameState,
@@ -65,40 +119,23 @@ export function decidePreflopAction(
   const player = state.players.find(p => p.seat === seat)!;
   const bb = state.blinds.bb;
 
-  // group 0 = 無条件フォールド（freqTierは参照しない）
+  // group 0 = 無条件フォールド（matrix value 0 のハンド: 72o 等）
   if (group === 0) return { action: 'fold' };
 
-  const isRaised = state.currentBet > bb;
+  const position = getPosition(state, seat);
+  const bbDepth = calcBBDepth(player, state);
+  const scenario = detectPreflopScenario(state, seat);
 
-  if (!isRaised) {
-    // RFI状況
-    const position = getPosition(state, seat);
-
-    // BB特殊ケース: 全員がBB以下でリンプ → BBはチェック可能
-    if (position === 'BB') return { action: 'check' };
-
-    const threshold = OPEN_THRESHOLD[position] ?? 2;
-    if (group > threshold) return { action: 'fold' };
-
-    // freqTier による確率判断
-    const raiseProb = freqTier === 1 ? 1.0 : freqTier === 2 ? 0.87 : 0.62;
-    if (Math.random() < raiseProb) {
-      return makeRaise(bb * 3, player);
+  switch (scenario) {
+    case 'rfi': {
+      const numActive = state.players.filter(p => p.status !== 'out').length;
+      return decideRFI(group, freqTier, position, bbDepth, numActive, player, bb);
     }
-    return { action: 'fold' };
+    case 'facing-raise':
+      return decideFacingRaise(group, position, bbDepth, state.currentBet, player);
+    case 'squeeze':
+      return decideSqueezeOrFold(group, countCallers(state, seat), bbDepth, state.currentBet, player);
+    case 'facing-reraise':
+      return decideFacingReraise(group, bbDepth, state.currentBet, player);
   }
-
-  // レイズ済みポット
-  if (group <= 1) return makeRaise(state.currentBet * 3, player);
-  if (group <= 4) {
-    const callAmt = Math.min(state.currentBet - player.bet, player.chips);
-    if (callAmt >= player.chips) return { action: 'allIn' };
-    return { action: 'call' };
-  }
-  if (Math.random() < 0.15) {
-    const callAmt = Math.min(state.currentBet - player.bet, player.chips);
-    if (callAmt >= player.chips) return { action: 'allIn' };
-    return { action: 'call' };
-  }
-  return { action: 'fold' };
 }
