@@ -161,10 +161,26 @@ function decideSqueezeOrFold(
 }
 
 function decideFacingReraise(
-  _group: number, _bbDepth: number,
-  _currentBet: number, _player: { chips: number; bet: number },
+  group: number,
+  bbDepth: number,
+  currentBet: number,
+  player: { chips: number; bet: number },
 ): PlayerAction {
-  return { action: 'fold' }; // TODO: Task 6
+  // ショートスタック（< 15BB）: premium のみ jam
+  if (bbDepth < 15) {
+    if (group <= 1) return { action: 'allIn' };
+    return { action: 'fold' };
+  }
+
+  // 通常スタック
+  if (group <= 1) return makeRaise(currentBet * 2.5, player); // 4-bet / re-jam
+  // group 2（AKo/JJ/TT 相当）: 深いスタックのみコール
+  if (group === 2 && bbDepth >= 40) {
+    const callAmt = Math.min(currentBet - player.bet, player.chips);
+    if (callAmt >= player.chips) return { action: 'allIn' };
+    return { action: 'call' };
+  }
+  return { action: 'fold' };
 }
 
 // ── Main dispatcher ───────────────────────────────────────────────────────────
