@@ -7,9 +7,17 @@ import { renderWithGame, createMockGameState } from '../helpers/renderWithGame';
 import { Card } from '../../../src/gameEngine';
 
 describe('CommunityCards', () => {
-  it('renders 5 card slots', () => {
-    const { getAllByTestId } = renderWithGame(<CommunityCards />, {
+  it('renders 0 card slots when no community cards (preflop)', () => {
+    const { queryAllByTestId } = renderWithGame(<CommunityCards />, {
       state: createMockGameState({ community: [] }),
+    });
+    expect(queryAllByTestId('card-slot')).toHaveLength(0);
+  });
+
+  it('renders 5 card slots once community cards are dealt (flop+)', () => {
+    const community: Card[] = ['Ah', 'Kd', 'Qs'];
+    const { getAllByTestId } = renderWithGame(<CommunityCards />, {
+      state: createMockGameState({ community, phase: 'flop' }),
     });
     expect(getAllByTestId('card-slot')).toHaveLength(5);
   });

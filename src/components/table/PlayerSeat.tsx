@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   containerCompact: {
     padding: 4,
-    minWidth: 52,
+    minWidth: 60,
   },
   nameCompact: {
     fontSize: 10,

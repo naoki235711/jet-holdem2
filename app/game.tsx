@@ -33,7 +33,7 @@ export function TableLayout() {
 
   const seat = (name: keyof typeof slots) =>
     slots[name] !== undefined ? (
-      <PlayerSeat seat={slots[name]!} compact={compact} />
+      <PlayerSeat seat={slots[name]!} compact={compact && name !== 'BC'} />
     ) : null;
 
   return (
