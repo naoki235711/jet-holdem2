@@ -139,7 +139,7 @@ describe('PlayerSeat', () => {
       state: createMockGameState(),
     });
     expect(getByTestId('player-seat-0').props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ minWidth: 52 })]),
+      expect.arrayContaining([expect.objectContaining({ minWidth: 60 })]),
     );
   });
 
