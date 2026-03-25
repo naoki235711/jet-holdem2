@@ -29,7 +29,7 @@ export interface HandResult {
 export type PlayerStatus = 'active' | 'folded' | 'allIn' | 'out';
 
 export interface Player {
-  seat: number;        // 0-3
+  seat: number;        // 0-8
   name: string;
   chips: number;
   status: PlayerStatus;
