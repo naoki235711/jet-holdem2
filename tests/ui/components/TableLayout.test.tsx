@@ -44,13 +44,14 @@ describe('TableLayout', () => {
     }
   });
 
-  it('uses compact seats when 5 or more players', () => {
+  it('uses compact seats for non-BC slots when 5 or more players', () => {
     const { getByTestId } = renderWithGame(<TableLayout />, {
       state: makeState(5),
       viewingSeat: 0,
     });
-    expect(getByTestId('player-seat-0').props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ minWidth: 52 })]),
+    // seat 1 is at BL (non-BC), should be compact
+    expect(getByTestId('player-seat-1').props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ minWidth: 60 })]),
     );
   });
 
@@ -59,8 +60,20 @@ describe('TableLayout', () => {
       state: makeState(4),
       viewingSeat: 0,
     });
+    // seat 1 is at BL, should be normal (4 players, no compact)
+    expect(getByTestId('player-seat-1').props.style).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ minWidth: 60 })]),
+    );
+  });
+
+  it('BC seat (viewer own seat) is never compact even with 5+ players', () => {
+    const { getByTestId } = renderWithGame(<TableLayout />, {
+      state: makeState(5),
+      viewingSeat: 0,
+    });
+    // seat 0 is at BC, should never have compact style
     expect(getByTestId('player-seat-0').props.style).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ minWidth: 52 })]),
+      expect.arrayContaining([expect.objectContaining({ minWidth: 60 })]),
     );
   });
 });
