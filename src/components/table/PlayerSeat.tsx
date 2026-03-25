@@ -10,9 +10,10 @@ import { ActionTimerBar } from './ActionTimerBar';
 
 interface PlayerSeatProps {
   seat: number;
+  compact?: boolean;
 }
 
-export function PlayerSeat({ seat }: PlayerSeatProps) {
+export function PlayerSeat({ seat, compact = false }: PlayerSeatProps) {
   const { state, mode, viewingSeat, timerRemainingMs, timerDurationMs } = useGame();
   if (!state) return null;
 
@@ -38,22 +39,23 @@ export function PlayerSeat({ seat }: PlayerSeatProps) {
         testID={`player-seat-${seat}`}
         style={[
           styles.container,
+          compact && styles.containerCompact,
           isActive && styles.active,
           isFolded && styles.folded,
         ]}
       >
-        <Text style={styles.name}>{player.name}</Text>
-        {player.isBot && (
+        <Text style={[styles.name, compact && styles.nameCompact]}>{player.name}</Text>
+        {player.isBot && !compact && (
           <Text style={styles.botBadge} testID={`bot-badge-${seat}`}>BOT</Text>
         )}
 
         <View style={styles.cards}>
           {player.cards.map((card, i) => (
-            <PlayingCard key={i} card={card} faceUp={showCards} size="hand" />
+            <PlayingCard key={i} card={card} faceUp={showCards} size={compact ? 'small' : 'hand'} />
           ))}
         </View>
 
-        <ChipAmount amount={player.chips} color={Colors.text} fontSize={12} testID={`chip-stack-${seat}`} />
+        <ChipAmount amount={player.chips} color={Colors.text} fontSize={compact ? 10 : 12} testID={`chip-stack-${seat}`} />
 
         {isFolded && <Text style={styles.statusBadge}>FOLDED</Text>}
         {isAllIn && <Text style={styles.statusBadge}>ALL IN</Text>}
@@ -134,5 +136,12 @@ const styles = StyleSheet.create({
   betOuter: {
     alignItems: 'center',
     marginTop: 4,
+  },
+  containerCompact: {
+    padding: 4,
+    minWidth: 52,
+  },
+  nameCompact: {
+    fontSize: 10,
   },
 });
