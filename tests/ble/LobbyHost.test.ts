@@ -114,24 +114,37 @@ describe('LobbyHost', () => {
       expect(response).toMatchObject({ type: 'joinResponse', accepted: true, seat: 2 });
     });
 
-    it('rejects the 4th client (room full: host + 3 clients)', async () => {
-      for (let i = 1; i <= 3; i++) {
+    it('rejects the 10th client (room full: host + 8 clients = 9 total)', async () => {
+      for (let i = 1; i <= 8; i++) {
         transport.simulateClientConnected(`client-${i}`);
         transport.simulateMessageReceived(
           `client-${i}`, 'lobby',
           encodeMessage(JSON.stringify({ type: 'join', protocolVersion: 1, playerName: `P${i}` })),
         );
       }
-      // 4th client
-      transport.simulateClientConnected('client-4');
+      // 9th client attempt (10th person total including host)
+      transport.simulateClientConnected('client-9');
       transport.simulateMessageReceived(
-        'client-4', 'lobby',
-        encodeMessage(JSON.stringify({ type: 'join', protocolVersion: 1, playerName: 'P4' })),
+        'client-9', 'lobby',
+        encodeMessage(JSON.stringify({ type: 'join', protocolVersion: 1, playerName: 'P9' })),
       );
       await flushPromises();
 
-      const response = decodeLastFrom(transport, 'client-4');
+      const response = decodeLastFrom(transport, 'client-9');
       expect(response).toMatchObject({ type: 'joinResponse', accepted: false });
+    });
+
+    it('assigns seats 1 through 8 to 8 joining clients', async () => {
+      for (let i = 1; i <= 8; i++) {
+        transport.simulateClientConnected(`client-${i}`);
+        transport.simulateMessageReceived(
+          `client-${i}`, 'lobby',
+          encodeMessage(JSON.stringify({ type: 'join', protocolVersion: 1, playerName: `P${i}` })),
+        );
+        await flushPromises();
+        const response = decodeLastFrom(transport, `client-${i}`);
+        expect(response).toMatchObject({ type: 'joinResponse', accepted: true, seat: i });
+      }
     });
 
     it('ignores duplicate join from same clientId', async () => {
