@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
   },
   chartButton: {
     position: 'absolute',
-    bottom: 80,
-    right: 12,
+    top: 8,
+    right: 8,
     backgroundColor: '#1E3A5F',
     borderRadius: 6,
     paddingHorizontal: 10,
