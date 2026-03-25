@@ -109,10 +109,35 @@ function decideRFI(
 }
 
 function decideFacingRaise(
-  _group: number, _position: string, _bbDepth: number,
-  _currentBet: number, _player: { chips: number; bet: number },
+  group: number,
+  position: string,
+  bbDepth: number,
+  currentBet: number,
+  player: { chips: number; bet: number },
 ): PlayerAction {
-  return { action: 'fold' }; // TODO: Task 4
+  const isIP = ['BTN', 'CO', 'HJ'].includes(position);
+
+  // ショートスタック（< 15BB）: premium のみ allIn
+  if (bbDepth < 15) {
+    if (group <= 1) return { action: 'allIn' };
+    return { action: 'fold' };
+  }
+
+  // ミドルスタック（15–29BB）: 3-bet or fold（コールなし）
+  if (bbDepth < 30) {
+    if (group <= 1) return makeRaise(currentBet * 3, player);
+    return { action: 'fold' };
+  }
+
+  // 通常スタック（>= 30BB）
+  if (group <= 1) return makeRaise(currentBet * 3, player);  // バリュー 3-bet
+  if (group <= 3 && isIP && Math.random() < 0.20) return makeRaise(currentBet * 3, player); // ブラフ 3-bet
+  if (group <= 4) {
+    const callAmt = Math.min(currentBet - player.bet, player.chips);
+    if (callAmt >= player.chips) return { action: 'allIn' };
+    return { action: 'call' };
+  }
+  return { action: 'fold' };
 }
 
 function decideSqueezeOrFold(
