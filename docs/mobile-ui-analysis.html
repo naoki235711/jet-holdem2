@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>9-Player UI — Mobile Size Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=JetBrains+Mono:wght@400;500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:       #0c0b09;
+      --parchment: #f5edd8;
+      --felt:      #1b3a2a;
+      --felt-light:#2a4f3c;
+      --gold:      #c8972a;
+      --gold-pale: #e8c97a;
+      --red:       #c0392b;
+      --amber:     #e67e22;
+      --muted:     #8a7f6a;
+      --seat-bg:   rgba(255,255,255,0.07);
+      --border:    rgba(200,151,42,0.35);
+    }
+
+    body {
+      background: var(--ink);
+      color: var(--parchment);
+      font-family: 'Crimson Pro', Georgia, serif;
+      min-height: 100vh;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+    }
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: .04em;
+      color: var(--gold-pale);
+    }
+    header p {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    /* ── Player count selector ── */
+    .selector {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+    .sel-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      padding: 7px 16px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all .18s;
+      letter-spacing: .04em;
+    }
+    .sel-btn:hover  { border-color: var(--gold); color: var(--gold-pale); }
+    .sel-btn.active { background: var(--gold); border-color: var(--gold); color: var(--ink); font-weight: 700; }
+
+    /* ── Main two-column layout ── */
+    .main {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 40px;
+      align-items: start;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    @media (max-width: 820px) {
+      .main { grid-template-columns: 1fr; }
+    }
+
+    /* ══════════════════════════════════════
+       PHONE MOCKUP
+    ══════════════════════════════════════ */
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .phone-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: .06em;
+    }
+    .phone-frame {
+      width: 375px;
+      background: #1a1a1a;
+      border-radius: 36px;
+      border: 2px solid #333;
+      box-shadow: 0 0 0 1px #111, 0 24px 60px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06);
+      overflow: hidden;
+      position: relative;
+    }
+    .phone-notch {
+      height: 28px;
+      background: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .phone-notch::after {
+      content: '';
+      width: 100px;
+      height: 20px;
+      background: #111;
+      border-radius: 0 0 14px 14px;
+    }
+    .phone-screen {
+      background: var(--ink);
+      display: flex;
+      flex-direction: column;
+      height: 680px;
+      overflow: hidden;
+    }
+
+    /* ── In-screen components ── */
+    .game-header {
+      height: 44px;
+      background: rgba(255,255,255,.04);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: .12em;
+      flex-shrink: 0;
+    }
+
+    /* ── TABLE AREA ── */
+    .table {
+      flex: 1;
+      background: var(--felt);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      position: relative;
+      /* subtle felt texture */
+      background-image: radial-gradient(ellipse at center, #2a4f3c 0%, #1b3a2a 100%);
+    }
+
+    /* grid rows */
+    .top-row {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 8px;
+      padding-top: 8px;
+      min-height: 10px;
+    }
+    .middle-row {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .side-col {
+      min-width: 56px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+    }
+    .center-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 2px;
+    }
+    .bottom-row {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 8px;
+      padding-bottom: 8px;
+      min-height: 10px;
+    }
+
+    /* ── Player Seat ── */
+    .seat {
+      background: var(--seat-bg);
+      border: 1.5px solid transparent;
+      border-radius: 8px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      position: relative;
+      transition: all .2s;
+    }
+    .seat.normal  { min-width: 70px; padding: 6px; }
+    .seat.compact { min-width: 52px; padding: 4px; }
+    .seat.viewer  { border-color: rgba(200,151,42,0.7); background: rgba(200,151,42,0.1); }
+    .seat.active  { border-color: #4ade80; }
+
+    .seat-name {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--parchment);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      text-align: center;
+    }
+    .seat.normal  .seat-name { font-size: 8px; }
+    .seat.compact .seat-name { font-size: 7px; }
+
+    .seat-cards {
+      display: flex;
+      flex-direction: row;
+      gap: 2px;
+    }
+    .card {
+      background: #374151;
+      border: 1px solid #4B5563;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .card.normal  { width: 25px; height: 35px; font-size: 7px; }
+    .card.small   { width: 18px; height: 26px; font-size: 6px; }
+    .card.face-up { background: #f5f5f5; color: #c0392b; }
+    .card.back    { background: #1e3799; }
+
+    .seat-chips {
+      font-family: 'JetBrains Mono', monospace;
+      color: #9ca3af;
+    }
+    .seat.normal  .seat-chips { font-size: 7px; }
+    .seat.compact .seat-chips { font-size: 6px; }
+
+    /* empty slot placeholder */
+    .slot-empty {
+      min-width: 52px;
+      height: 60px;
+      border: 1px dashed rgba(255,255,255,.08);
+      border-radius: 8px;
+      opacity: .4;
+    }
+    .slot-empty.normal { min-width: 70px; height: 78px; }
+
+    /* ── Community Cards ── */
+    .community-cards {
+      display: flex;
+      flex-direction: row;
+      gap: 4px;
+    }
+    .community-card {
+      width: 45px;
+      height: 65px;
+      background: #f5f5f5;
+      border: 1px solid #4B5563;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #c0392b;
+      font-weight: bold;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .community-card.empty {
+      background: rgba(255,255,255,.05);
+      border: 1px dashed rgba(255,255,255,.15);
+      color: transparent;
+    }
+
+    .pot-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--gold-pale);
+      letter-spacing: .06em;
+    }
+
+    /* ── Action buttons area ── */
+    .action-area {
+      height: 110px;
+      background: rgba(0,0,0,.5);
+      border-top: 1px solid rgba(255,255,255,.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+    .action-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.08);
+      color: var(--parchment);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: .08em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .action-btn.call  { background: rgba(34,197,94,.2); border-color: rgba(34,197,94,.4); color: #4ade80; }
+    .action-btn.raise { background: rgba(59,130,246,.2); border-color: rgba(59,130,246,.4); color: #60a5fa; }
+    .action-btn.fold  { background: rgba(239,68,68,.1);  border-color: rgba(239,68,68,.3);  color: #f87171; }
+
+    /* phone bottom bar */
+    .phone-home-bar {
+      height: 20px;
+      background: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .phone-home-bar::after {
+      content: '';
+      width: 100px;
+      height: 4px;
+      background: #444;
+      border-radius: 2px;
+    }
+
+    /* ═══════════════════════════════════════
+       ANNOTATION OVERLAY (issue markers)
+    ═══════════════════════════════════════ */
+    .annotation {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      pointer-events: none;
+    }
+    .annotation-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--red);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(192,57,43,.3);
+      z-index: 10;
+    }
+    .annotation-dot.ok { background: #27ae60; box-shadow: 0 0 0 2px rgba(39,174,96,.3); }
+
+    /* ═══════════════════════════════════════
+       ANALYSIS PANEL (right side)
+    ═══════════════════════════════════════ */
+    .analysis {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .analysis h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--gold-pale);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 4px;
+    }
+
+    .issue-card {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      border-left: 3px solid var(--red);
+      border-radius: 4px;
+      padding: 14px 16px;
+    }
+    .issue-card.warning { border-left-color: var(--amber); }
+    .issue-card.ok      { border-left-color: #27ae60; }
+    .issue-card.suggest { border-left-color: #3498db; }
+
+    .issue-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .issue-title .badge {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 2px;
+      background: var(--red);
+      color: #fff;
+    }
+    .badge.warning { background: var(--amber); }
+    .badge.ok      { background: #27ae60; }
+    .badge.suggest { background: #3498db; }
+
+    .issue-body {
+      font-size: 0.95rem;
+      line-height: 1.65;
+      color: #c5b89a;
+    }
+    .issue-body code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      background: rgba(255,255,255,.08);
+      padding: 1px 5px;
+      border-radius: 2px;
+      color: var(--gold-pale);
+    }
+    .issue-body strong { color: var(--parchment); }
+
+    /* pixel ruler */
+    .ruler {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .ruler-bar {
+      height: 10px;
+      background: rgba(200,151,42,.4);
+      border: 1px solid var(--gold);
+      border-radius: 1px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ruler-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--gold-pale);
+      white-space: nowrap;
+    }
+
+    /* ── dimension callout inside phone ── */
+    .dim-line {
+      position: absolute;
+      background: rgba(200,151,42,.5);
+      z-index: 5;
+      pointer-events: none;
+    }
+    .dim-label {
+      position: absolute;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      color: var(--gold-pale);
+      background: rgba(0,0,0,.7);
+      padding: 1px 4px;
+      border-radius: 2px;
+      z-index: 6;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* ── issue number badge (links analysis ↔ phone) ── */
+    .num-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 9px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+    .num-badge.err  { background: var(--red);   color: #fff; }
+    .num-badge.warn { background: var(--amber);  color: #fff; }
+    .num-badge.info { background: #27ae60;       color: #fff; }
+    .num-badge.tip  { background: #3498db;       color: #fff; }
+
+    /* ── summary verdict ── */
+    .verdict {
+      background: linear-gradient(135deg, rgba(192,57,43,.12), rgba(192,57,43,.05));
+      border: 1px solid rgba(192,57,43,.3);
+      border-radius: 6px;
+      padding: 18px 20px;
+    }
+    .verdict h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: #e74c3c;
+      margin-bottom: 10px;
+    }
+    .verdict p { font-size: .95rem; line-height: 1.7; color: #c5b89a; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>9-Player UI — Mobile Size Analysis</h1>
+  <p>スマートフォン（375 × 812 pt）での各プレイヤー数レイアウト評価</p>
+</header>
+
+<!-- Player count selector -->
+<div class="selector">
+  <button class="sel-btn" onclick="setCount(2)">2P</button>
+  <button class="sel-btn" onclick="setCount(3)">3P</button>
+  <button class="sel-btn" onclick="setCount(4)">4P</button>
+  <button class="sel-btn" onclick="setCount(5)">5P</button>
+  <button class="sel-btn" onclick="setCount(6)">6P</button>
+  <button class="sel-btn" onclick="setCount(7)">7P</button>
+  <button class="sel-btn" onclick="setCount(8)">8P</button>
+  <button class="sel-btn active" onclick="setCount(9)">9P</button>
+</div>
+
+<div class="main">
+
+  <!-- ══ LEFT: Phone Mockup ══ -->
+  <div class="phone-wrap">
+    <div class="phone-label" id="mockup-label">375 pt width · iPhone SE / 14 — actual scale</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+
+        <!-- in-game header -->
+        <div class="game-header">TEXAS HOLD'EM</div>
+
+        <!-- TABLE -->
+        <div class="table" id="table-area" style="position:relative;">
+
+          <!-- TOP ROW -->
+          <div class="top-row" id="top-row"></div>
+
+          <!-- MIDDLE ROW -->
+          <div class="middle-row" id="middle-row">
+            <div class="side-col" id="side-col-left"></div>
+            <div class="center-area">
+              <div class="pot-display">POT: 150</div>
+              <div class="community-cards" id="community-cards"></div>
+            </div>
+            <div class="side-col" id="side-col-right"></div>
+          </div>
+
+          <!-- BOTTOM ROW -->
+          <div class="bottom-row" id="bottom-row"></div>
+
+          <!-- dimension overlays (shown for specific player counts) -->
+          <div id="dim-overlays"></div>
+
+        </div><!-- /table -->
+
+        <!-- ACTION BUTTONS -->
+        <div class="action-area">
+          <div class="action-btn fold">FOLD</div>
+          <div class="action-btn call">CALL</div>
+          <div class="action-btn raise">RAISE</div>
+        </div>
+
+      </div><!-- /phone-screen -->
+      <div class="phone-home-bar"></div>
+    </div><!-- /phone-frame -->
+
+    <!-- Width ruler under phone -->
+    <div style="width:375px; margin-top:8px;">
+      <div style="display:flex; align-items:center; gap:0; border-top:1px solid var(--border); padding-top:6px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); width:100%; text-align:center;">
+          |←————————————— 375 pt ——————————————→|
+        </div>
+      </div>
+    </div>
+
+    <!-- Breakdown ruler for sideCol + center -->
+    <div style="width:375px; display:flex; gap:0; align-items:stretch; margin-top:4px;" id="ruler-row">
+      <div style="width:56px; background:rgba(200,151,42,.15); border:1px solid rgba(200,151,42,.3); border-radius:2px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--gold-pale); padding:3px 0;">56px<br><span style="color:var(--muted);">sideCol</span></div>
+      <div style="flex:1; background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.3); border-radius:2px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:8px; color:#60a5fa; padding:3px 0;" id="center-width-ruler">263px<br><span style="color:var(--muted);">center (free)</span></div>
+      <div style="width:56px; background:rgba(200,151,42,.15); border:1px solid rgba(200,151,42,.3); border-radius:2px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--gold-pale); padding:3px 0;">56px<br><span style="color:var(--muted);">sideCol</span></div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--muted); margin-top:4px; text-align:center;">
+      community cards need: <span id="cards-need" style="color:var(--gold-pale);">241px</span> (5×45 + 4×4px gap)
+    </div>
+  </div>
+
+  <!-- ══ RIGHT: Analysis ══ -->
+  <div class="analysis">
+
+    <h2>Issues Found</h2>
+
+    <!-- Issue 1 -->
+    <div class="issue-card" id="issue1">
+      <div class="issue-title">
+        <span class="num-badge err">1</span>
+        <span style="color:#e74c3c;">上左コーナー(TL)が常に空 — 非対称レイアウト</span>
+        <span class="badge">CRITICAL</span>
+      </div>
+      <div class="issue-body">
+        <code>SLOTS_BY_COUNT[9]</code> には <code>TL</code> が含まれない。
+        9人でも topRow は <code>[null, TC, TR]</code> となり、<strong>上段が右寄り</strong>になる。
+        スマートフォンの小さな画面では視覚的バランスの崩れが目立つ。
+        <br><br>
+        修正案：9人テーブルでは <code>TL</code> を使い <code>RB</code> を外す
+        (時計回り配置が自然に保たれる)。または <code>TL</code> に
+        装飾アイコン（ゲームロゴ等）を置いてデッドスペースを活用する。
+      </div>
+    </div>
+
+    <!-- Issue 2 -->
+    <div class="issue-card" id="issue2">
+      <div class="issue-title">
+        <span class="num-badge err">2</span>
+        <span style="color:#e74c3c;">compact席の幅52pxは実機で小さすぎる</span>
+        <span class="badge">CRITICAL</span>
+      </div>
+      <div class="issue-body">
+        compact時のPlayerSeatはpadding 4px(両端8px)、内部幅44pxのみ。
+        <br>
+        <div class="ruler" style="margin-top:8px; flex-direction:column; align-items:flex-start; gap:4px;">
+          <div class="ruler" style="margin:0;">
+            <div class="ruler-bar" style="width:36px; border-color:#e74c3c; background:rgba(192,57,43,.3);">
+              <span style="font-size:7px; color:#f87171; position:absolute; top:-14px; white-space:nowrap;">cards: 18+2+18=38px</span>
+            </div>
+            <div style="width:3px;"></div>
+            <div class="ruler-bar" style="width:6px; border-color:#888; background:rgba(255,255,255,.1);">
+              <span style="font-size:6px; color:#888; position:absolute; top:-14px;">pad</span>
+            </div>
+            <span class="ruler-label">= 44px内幅</span>
+          </div>
+          <div class="ruler" style="margin:0;">
+            <div class="ruler-bar" style="width:52px; border-color:var(--gold);">
+              <span style="font-size:7px; color:var(--gold-pale); position:absolute; top:-14px;">compact minWidth: 52px</span>
+            </div>
+            <span class="ruler-label">外幅</span>
+          </div>
+        </div>
+        <br>
+        カード2枚だけで38pxを占め、名前テキスト(10px font)が4文字程度しか見えない。
+        現行の <code>minWidth: 70px</code> に対して <strong>26%の縮小</strong>は実機での判読性に影響する。
+        <br><br>
+        <strong>推奨：</strong> compact を <code>minWidth: 60px</code>、padding <code>5px</code> に見直す。
+      </div>
+    </div>
+
+    <!-- Issue 3 -->
+    <div class="issue-card warning" id="issue3">
+      <div class="issue-title">
+        <span class="num-badge warn">3</span>
+        <span style="color:#e67e22;">自分の席(BC)がopponentと同サイズ</span>
+        <span class="badge warning">WARNING</span>
+      </div>
+      <div class="issue-body">
+        compact時、<code>compact={compact}</code> はすべての席に等しく適用される。
+        しかしポーカーのUX原則として <strong>自分の手札は常に目立つべき</strong>。
+        5人以上でもBC(viewer)は normal サイズのままにすることを推奨。
+        <br><br>
+        <code>PlayerSeat</code> に <code>isViewer?: boolean</code> prop を追加し、
+        viewer席のみ <code>compact=false</code> 固定にする案を検討する。
+      </div>
+    </div>
+
+    <!-- Issue 4 -->
+    <div class="issue-card warning" id="issue4">
+      <div class="issue-title">
+        <span class="num-badge warn">4</span>
+        <span style="color:#e67e22;">5〜8人でのEmptyスロットが視覚的に不整合</span>
+        <span class="badge warning">WARNING</span>
+      </div>
+      <div class="issue-body">
+        6人ゲームの場合、topRowは <code>[null, TC, TR]</code>、
+        bottomRowは <code>[BL, BC, null]</code> となる。
+        つまり <strong>上は右寄り、下は左寄り</strong> — 斜め対角に空きが生じる。
+        これはスマートフォン画面でアンバランスに見える。
+        <br><br>
+        6人レイアウトの見直し案：<code>BL, BC, BR</code> を底に揃え、
+        右サイドに <code>RT, RB</code> を使うなど対称性を優先する。
+      </div>
+    </div>
+
+    <!-- Issue 5 — community cards -->
+    <div class="issue-card warning" id="issue5">
+      <div class="issue-title">
+        <span class="num-badge warn">5</span>
+        <span style="color:#e67e22;">コミュニティカード幅がセンター幅とギリギリ</span>
+        <span class="badge warning">WARNING</span>
+      </div>
+      <div class="issue-body">
+        <code>sideCol minWidth: 56px × 2 = 112px</code> を引いた中央幅は
+        <strong>263px</strong>（375 − 112）。
+        コミュニティカード5枚は <code>5×45 + 4×4 = 241px</code> を要する。
+        余白は <strong>わずか22px</strong>。
+        <br><br>
+        テーブルに <code>paddingHorizontal: 8</code> があれば中央幅は<span style="color:#e74c3c;">247px</span>まで縮まり、
+        カードがはみ出す恐れがある。コミュニティカードを <code>flex-shrink</code> 対応にするか、
+        サイズを小さくする（例：40×58px）安全策が望ましい。
+      </div>
+    </div>
+
+    <!-- Issue 6 - landscape -->
+    <div class="issue-card warning" id="issue6">
+      <div class="issue-title">
+        <span class="num-badge warn">6</span>
+        <span style="color:#e67e22;">ランドスケープ(横向き)の考慮なし</span>
+        <span class="badge warning">WARNING</span>
+      </div>
+      <div class="issue-body">
+        6〜9人ゲームでは横向きの方がプレイしやすい場合が多い。
+        計画にはランドスケープレイアウトへの言及がない。
+        <br><br>
+        少なくとも <strong>縦固定 (portrait lock)</strong> の明示、
+        または横向き時の代替レイアウトを検討する必要がある。
+      </div>
+    </div>
+
+    <!-- What works -->
+    <div class="issue-card ok" id="issue-ok">
+      <div class="issue-title">
+        <span class="num-badge info">✓</span>
+        <span style="color:#27ae60;">設計として正しい部分</span>
+        <span class="badge ok">GOOD</span>
+      </div>
+      <div class="issue-body">
+        <strong>• スロットマッピング方式</strong>: <code>getTableSlots()</code> の純関数設計は
+        テストしやすく拡張性も高い。<br>
+        <strong>• 3行構造</strong>: top / middle / bottom の縦分割はポートレートスマホに自然にフィットする。<br>
+        <strong>• 時計回り配置</strong>: 視聴者からの相対位置で席を決める方式は直感的。<br>
+        <strong>• BC = 自分</strong>: 常に画面下中央に自分の席を置くのはポーカーUI標準に沿っている。
+      </div>
+    </div>
+
+    <!-- Recommendation summary -->
+    <div class="verdict">
+      <h3>総評：修正なしでリリースは推奨しない</h3>
+      <p>
+        スマートフォンサイズでの主な問題は
+        <strong>compact席の52px幅（Issue 2）</strong> と
+        <strong>TLコーナーの非対称（Issue 1）</strong>。
+        特に52pxのコンパクト席は実機確認が必須。
+        コミュニティカードのフィット問題（Issue 5）も
+        paddingの有無で本番クラッシュにつながりうる。
+        <br><br>
+        <strong>最優先修正 2点：</strong><br>
+        1. <code>containerCompact.minWidth</code> を 52 → 60 に変更し実機テスト<br>
+        2. 9人の <code>SLOTS_BY_COUNT</code> を見直し TL を含める or 対称にする
+      </p>
+    </div>
+
+  </div><!-- /analysis -->
+</div><!-- /main -->
+
+<script>
+// ── Slot maps (from plan) ──
+const SLOTS_BY_COUNT = {
+  2: ['BC', 'TC'],
+  3: ['BC', 'BL', 'TR'],
+  4: ['BC', 'BL', 'TC', 'TR'],
+  5: ['BC', 'BL', 'LT', 'TC', 'TR'],
+  6: ['BC', 'BL', 'LT', 'TC', 'TR', 'RB'],
+  7: ['BC', 'BL', 'LT', 'TC', 'TR', 'RT', 'BR'],
+  8: ['BC', 'BL', 'LB', 'LT', 'TC', 'TR', 'RT', 'BR'],
+  9: ['BC', 'BL', 'LB', 'LT', 'TC', 'TR', 'RT', 'RB', 'BR'],
+};
+
+// Slot → position mapping
+const SLOT_POSITION = {
+  TL: 'top-row',    TC: 'top-row',    TR: 'top-row',
+  LT: 'side-left',  LB: 'side-left',
+  RT: 'side-right', RB: 'side-right',
+  BL: 'bottom-row', BC: 'bottom-row', BR: 'bottom-row',
+};
+
+const PLAYER_NAMES = ['You', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'];
+const PLAYER_CHIPS = [980, 1040, 960, 1100, 850, 1200, 920, 780, 1050];
+
+function makeSeat(playerIdx, isViewer, compact) {
+  const cls = `seat ${compact && !isViewer ? 'compact' : 'normal'} ${isViewer ? 'viewer' : ''}`;
+  const cardCls = compact && !isViewer ? 'small' : 'normal';
+  const chip = PLAYER_CHIPS[playerIdx];
+  const name = PLAYER_NAMES[playerIdx];
+  return `
+    <div class="${cls}">
+      <div class="seat-name">${name}</div>
+      <div class="seat-cards">
+        <div class="card ${cardCls} ${isViewer ? 'face-up' : 'back'}">
+          ${isViewer ? 'A♥' : ''}
+        </div>
+        <div class="card ${cardCls} ${isViewer ? 'face-up' : 'back'}">
+          ${isViewer ? 'K♠' : ''}
+        </div>
+      </div>
+      <div class="seat-chips">${chip}</div>
+    </div>`;
+}
+
+function makeEmptySlot(compact) {
+  return `<div class="slot-empty ${compact ? '' : 'normal'}"></div>`;
+}
+
+function setCount(n) {
+  // Update active button
+  document.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const compact = n >= 5;
+  const slots   = SLOTS_BY_COUNT[n];
+
+  // Build slot → playerIdx map (viewer at BC = player 0)
+  const slotMap = {};
+  for (let i = 0; i < slots.length; i++) {
+    slotMap[slots[i]] = i; // playerIdx
+  }
+
+  // Clear rows
+  const topRow    = document.getElementById('top-row');
+  const leftCol   = document.getElementById('side-col-left');
+  const rightCol  = document.getElementById('side-col-right');
+  const bottomRow = document.getElementById('bottom-row');
+
+  topRow.innerHTML    = '';
+  leftCol.innerHTML   = '';
+  rightCol.innerHTML  = '';
+  bottomRow.innerHTML = '';
+
+  // Top row: TL TC TR
+  ['TL', 'TC', 'TR'].forEach(slot => {
+    if (slotMap[slot] !== undefined) {
+      topRow.innerHTML += makeSeat(slotMap[slot], false, compact);
+    } else if (slot === 'TL') {
+      // TL always empty - show placeholder with warning color
+      topRow.innerHTML += `<div class="slot-empty ${compact?'':'normal'}" style="border-color:rgba(192,57,43,.3);"></div>`;
+    }
+    // else: TC or TR missing = no element (no placeholder on sides)
+  });
+
+  // Left side: LT LB
+  ['LT', 'LB'].forEach(slot => {
+    if (slotMap[slot] !== undefined) {
+      leftCol.innerHTML += makeSeat(slotMap[slot], false, compact);
+    }
+  });
+
+  // Right side: RT RB
+  ['RT', 'RB'].forEach(slot => {
+    if (slotMap[slot] !== undefined) {
+      rightCol.innerHTML += makeSeat(slotMap[slot], false, compact);
+    }
+  });
+
+  // Bottom row: BL BC BR
+  ['BL', 'BC', 'BR'].forEach(slot => {
+    if (slotMap[slot] !== undefined) {
+      const isViewer = slot === 'BC';
+      bottomRow.innerHTML += makeSeat(slotMap[slot], isViewer, compact);
+    }
+  });
+
+  // Community cards (always show flop for visual)
+  const cc = document.getElementById('community-cards');
+  const nCards = Math.min(3, n > 2 ? 3 : 0);
+  let cardsHtml = '';
+  const suits  = ['♥','♣','♦','♠','♥'];
+  const ranks  = ['A','K','Q','7','J'];
+  const colors = ['face-up','face-up','face-up','empty','empty'];
+  for (let i = 0; i < 5; i++) {
+    if (n <= 1) {
+      cardsHtml += `<div class="community-card empty"></div>`;
+    } else {
+      cardsHtml += `<div class="community-card ${colors[i]}">${colors[i]==='face-up' ? ranks[i]+suits[i] : ''}</div>`;
+    }
+  }
+  cc.innerHTML = cardsHtml;
+
+  // Update issue highlights based on count
+  updateIssueHighlights(n, compact);
+}
+
+function updateIssueHighlights(n, compact) {
+  // Issue 1: TL asymmetry - always visible when n >= 4
+  document.getElementById('issue1').style.opacity = n >= 4 ? '1' : '0.4';
+
+  // Issue 2: compact size - visible when compact
+  document.getElementById('issue2').style.opacity = compact ? '1' : '0.4';
+
+  // Issue 3: viewer size - visible when compact
+  document.getElementById('issue3').style.opacity = compact ? '1' : '0.4';
+
+  // Issue 4: empty slot asymmetry - most visible at 6,7,8
+  document.getElementById('issue4').style.opacity = (n >= 5 && n <= 8) ? '1' : '0.4';
+
+  // Issue 5: community cards always relevant
+  document.getElementById('issue5').style.opacity = '1';
+}
+
+// Initialize with 9 players
+window.addEventListener('DOMContentLoaded', () => {
+  // Simulate click on 9P
+  const btn9 = document.querySelector('.sel-btn.active');
+  // Call directly
+  setCount(9);
+  updateIssueHighlights(9, true);
+});
+</script>
+</body>
+</html>
