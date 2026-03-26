@@ -13,6 +13,15 @@ function advanceToPhase(service: LocalGameService, targetPhase: string): void {
         state = service.getState();
         continue;
       }
+      if (
+        state.phase === 'allInFlop' ||
+        state.phase === 'allInTurn' ||
+        state.phase === 'allInRiver'
+      ) {
+        service.advanceRunout();
+        state = service.getState();
+        continue;
+      }
       break;
     }
     const info = service.getActionInfo(state.activePlayer);

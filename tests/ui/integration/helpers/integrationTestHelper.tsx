@@ -122,6 +122,16 @@ export function advanceToPhase(
         state = service.getState();
         continue;
       }
+      // In allIn runout phases, advance to next community card phase
+      if (
+        state.phase === 'allInFlop' ||
+        state.phase === 'allInTurn' ||
+        state.phase === 'allInRiver'
+      ) {
+        service.advanceRunout();
+        state = service.getState();
+        continue;
+      }
       break;
     }
     const info = service.getActionInfo(state.activePlayer);

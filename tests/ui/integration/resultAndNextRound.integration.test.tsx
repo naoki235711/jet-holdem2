@@ -455,6 +455,15 @@ describe('Result & Next Round Integration Tests', () => {
         fireEvent.press(screen.getByTestId('call-btn'));
       });
 
+      // Advance through allIn* phases directly via service (bypasses timer delay).
+      await act(async () => { service.advanceRunout(); }); // allInFlop → allInTurn
+      await act(async () => { service.advanceRunout(); }); // allInTurn → allInRiver
+      await act(async () => {
+        service.advanceRunout(); // allInRiver → showdown
+        const sdResult = service.resolveShowdown(); // showdown → roundEnd
+        void sdResult;
+      });
+
       // Both players are all-in. Since all active players are all-in,
       // phases skip through to showdown automatically, then doAction
       // auto-resolves showdown.
@@ -502,6 +511,14 @@ describe('Result & Next Round Integration Tests', () => {
         fireEvent.press(screen.getByTestId('call-btn'));
       });
 
+      // Advance through allIn* phases directly via service (bypasses timer delay).
+      await act(async () => { service.advanceRunout(); }); // allInFlop → allInTurn
+      await act(async () => { service.advanceRunout(); }); // allInTurn → allInRiver
+      await act(async () => {
+        service.advanceRunout(); // allInRiver → showdown
+        service.resolveShowdown(); // showdown → roundEnd
+      });
+
       await waitFor(() => {
         expect(screen.getByTestId('result-overlay')).toBeTruthy();
       });
@@ -542,6 +559,14 @@ describe('Result & Next Round Integration Tests', () => {
       });
       await act(async () => {
         fireEvent.press(screen.getByTestId('call-btn'));
+      });
+
+      // Advance through allIn* phases directly via service (bypasses timer delay).
+      await act(async () => { service.advanceRunout(); }); // allInFlop → allInTurn
+      await act(async () => { service.advanceRunout(); }); // allInTurn → allInRiver
+      await act(async () => {
+        service.advanceRunout(); // allInRiver → showdown
+        service.resolveShowdown(); // showdown → roundEnd
       });
 
       // Both all-in → showdown auto-resolved → roundEnd
