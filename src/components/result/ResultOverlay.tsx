@@ -47,6 +47,14 @@ export function ResultOverlay() {
             </View>
           ) : null}
 
+          {showdownResult && state.community.length > 0 && (
+            <View style={styles.communityRow}>
+              {state.community.map((card, i) => (
+                <PlayingCard key={i} card={card} faceUp size="hand" />
+              ))}
+            </View>
+          )}
+
           {showdownResult && (
             <View style={styles.handsSection}>
               {state.players
@@ -148,6 +156,13 @@ const styles = StyleSheet.create({
   winnerName: { color: Colors.text, fontSize: 20, fontWeight: 'bold' },
   handDesc: { color: Colors.subText, fontSize: 14, marginTop: 2 },
   potWon: { color: Colors.pot, fontSize: 14, marginTop: 2 },
+  communityRow: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
   handsSection: { width: '100%', marginVertical: 12, gap: 6 },
   handRow: {
     flexDirection: 'row',
