@@ -1,7 +1,7 @@
 // src/components/lobby/LobbyView.tsx
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../theme/colors';
 import { LobbyModeSelector, LobbyMode } from './LobbyModeSelector';
@@ -90,25 +90,30 @@ export function LobbyView() {
   };
 
   const handleChipReset = () => {
-    Alert.alert(
-      'チップリセット',
-      '全プレイヤーの保存済みチップをリセットしますか？',
-      [
-        { text: 'キャンセル', style: 'cancel' },
-        {
-          text: 'はい',
-          onPress: async () => {
-            const playerNames = names.slice(0, playerCount).map((n, i) => n || `Player ${i}`);
-            for (const name of playerNames) {
-              await repository.savePlayerChips(name, Number(initialChips));
-            }
-            setResetFeedback(true);
-            clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = setTimeout(() => setResetFeedback(false), 3000);
-          },
-        },
-      ],
-    );
+    const doReset = async () => {
+      const playerNames = names.slice(0, playerCount).map((n, i) => n || `Player ${i}`);
+      for (const name of playerNames) {
+        await repository.savePlayerChips(name, Number(initialChips));
+      }
+      setResetFeedback(true);
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => setResetFeedback(false), 3000);
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('全プレイヤーの保存済みチップをリセットしますか？')) {
+        doReset();
+      }
+    } else {
+      Alert.alert(
+        'チップリセット',
+        '全プレイヤーの保存済みチップをリセットしますか？',
+        [
+          { text: 'キャンセル', style: 'cancel' },
+          { text: 'はい', onPress: doReset },
+        ],
+      );
+    }
   };
 
   const handleHostSubmit = (settings: { hostName: string; sb: string; bb: string; initialChips: string }) => {
