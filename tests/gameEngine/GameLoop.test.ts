@@ -186,6 +186,24 @@ describe('GameLoop', () => {
       game.prepareNextRound();
       expect(players[0].status).toBe('out');
     });
+
+    it('excludes 0-chip players in startRound even without prepareNextRound (savedChips scenario)', () => {
+      // Bug: when game starts from savedChips, a player with 0 chips (eliminated in prev session)
+      // was initialized as 'active' and startRound() was called without prepareNextRound().
+      // The player got dealt cards, assigned as SB, and showed "ALL IN" with 0 bet.
+      const players = makeGamePlayers(4);
+      players[1].chips = 0; // Simulates a player loaded from persistence with 0 chips
+
+      const game = new GameLoop(players, DEFAULT_BLINDS);
+      game.startRound();
+
+      // Player 1 should be 'out', not 'active' or 'allIn'
+      expect(players[1].status).toBe('out');
+      // Player 1 should not be dealt cards
+      expect(players[1].cards).toHaveLength(0);
+      // Player 1 should not have any bet (SB should not have been posted by them)
+      expect(players[1].bet).toBe(0);
+    });
   });
 
   describe('game over', () => {
