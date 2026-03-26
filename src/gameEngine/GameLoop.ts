@@ -48,6 +48,11 @@ export class GameLoop {
     this._seq++;
 
     for (const p of this._players) {
+      // Eliminate players with 0 chips (handles savedChips scenario where
+      // prepareNextRound was not called before startRound)
+      if (p.chips === 0 && p.status !== 'out') {
+        p.status = 'out';
+      }
       if (p.status !== 'out') {
         p.status = 'active';
         p.bet = 0;
