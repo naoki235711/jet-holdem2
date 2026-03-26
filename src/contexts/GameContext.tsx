@@ -179,6 +179,19 @@ export function GameProvider({ children, service, mode, repository, initialChips
     }
   }, [mode, state?.activePlayer]);
 
+  // Auto-advance all-in runout phases via timer
+  useEffect(() => {
+    if (!state) return;
+    const phase = state.phase;
+    if (phase !== 'allInFlop' && phase !== 'allInTurn' && phase !== 'allInRiver') return;
+    const delay = phase === 'allInRiver' ? 2500 : 1500;
+    const timer = setTimeout(() => {
+      serviceRef.current.advanceRunout();
+      autoResolveShowdown();
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [state?.phase, autoResolveShowdown]);
+
   const doAction = useCallback((seat: number, action: PlayerAction): ActionResult => {
     if (effectiveMode === 'ble-spectator') {
       return { valid: false, reason: 'Spectator cannot act' };

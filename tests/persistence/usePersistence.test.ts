@@ -22,6 +22,7 @@ function createMockService() {
     handleAction: jest.fn(),
     resolveShowdown: jest.fn(),
     prepareNextRound: jest.fn(),
+    advanceRunout: jest.fn(),
   };
 }
 

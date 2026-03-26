@@ -63,6 +63,7 @@ function createMockGameService() {
     prepareNextRound: jest.fn(() => {
       currentState = { ...currentState, phase: 'waiting' as Phase };
     }),
+    advanceRunout: jest.fn(),
     subscribe: jest.fn((fn: (state: GameState) => void) => {
       listener = fn;
       return () => { listener = null; };

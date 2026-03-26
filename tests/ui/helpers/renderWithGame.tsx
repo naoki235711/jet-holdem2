@@ -16,6 +16,7 @@ export function createMockService(overrides: Partial<GameService> = {}): GameSer
     handleAction: jest.fn(() => ({ valid: true })),
     resolveShowdown: jest.fn(() => ({ winners: [], hands: [] })),
     prepareNextRound: jest.fn(),
+    advanceRunout: jest.fn(),
     subscribe: jest.fn(() => () => {}),
     ...overrides,
   };
