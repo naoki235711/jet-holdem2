@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { GameProvider } from '../src/contexts/GameContext';
 import { GameService } from '../src/services/GameService';
@@ -24,6 +25,7 @@ import { repository } from '../src/services/persistence';
 
 export function TableLayout() {
   const { state, viewingSeat } = useGame();
+  const insets = useSafeAreaInsets();
   if (!state) return null;
 
   const allSeats = state.players.map(p => p.seat);
@@ -38,7 +40,7 @@ export function TableLayout() {
 
   return (
     <View style={styles.table}>
-      <View style={styles.topRow}>
+      <View style={[styles.topRow, { paddingTop: 8 + insets.top }]}>
         {seat('TL')}
         {seat('TC')}
         {seat('TR')}
