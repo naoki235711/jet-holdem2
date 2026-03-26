@@ -4,11 +4,15 @@ import { GameState, PlayerAction, Card } from '../../gameEngine/types';
 // RANKS をエイリアスして types.ts の RANKS と区別する
 import { MATRIX, RANKS as PREFLOP_RANKS, getGroup, getFreqTier } from '../../components/preflop/preflopData';
 
-// openThreshold: このポジションでRaiseできる最大グループ番号
-const OPEN_THRESHOLD: Record<string, number> = {
-  BTN: 6, CO: 5, HJ: 4, LJ: 4,
-  'UTG+2': 3, 'UTG+1': 3, UTG: 2,
-  SB: 7, BB: 1,
+const OPEN_THRESHOLD_BY_COUNT: Record<number, Partial<Record<string, number>>> = {
+  2: { BTN: 7, BB: 1 },
+  3: { BTN: 7, SB: 7, BB: 1 },
+  4: { BTN: 7, SB: 7, BB: 1, UTG: 5 },
+  5: { BTN: 7, SB: 7, BB: 1, UTG: 4, CO: 6 },
+  6: { BTN: 6, SB: 7, BB: 1, UTG: 3, HJ: 5, CO: 6 },
+  7: { BTN: 6, SB: 7, BB: 1, UTG: 3, LJ: 4, HJ: 5, CO: 5 },
+  8: { BTN: 6, SB: 7, BB: 1, UTG: 3, 'UTG+1': 3, LJ: 4, HJ: 4, CO: 5 },
+  9: { BTN: 6, SB: 7, BB: 1, UTG: 2, 'UTG+1': 3, 'UTG+2': 3, LJ: 4, HJ: 4, CO: 5 },
 };
 
 // N人アクティブプレイヤー時の、BTNから時計回りのポジション名
@@ -90,10 +94,8 @@ function decideRFI(
   // BB 特殊ケース: currentBet === bb（RFI シナリオ）では常にチェック
   if (position === 'BB') return { action: 'check' };
 
-  // マルチウェイ補正: 参加者数が増えるほどレンジを絞る
-  const penaltyGroups = Math.max(0, numActive - 3);
-  const threshold = OPEN_THRESHOLD[position] ?? 2;
-  const effectiveThreshold = Math.max(1, threshold - penaltyGroups);
+  const thresholdTable = OPEN_THRESHOLD_BY_COUNT[numActive] ?? OPEN_THRESHOLD_BY_COUNT[9]!;
+  const effectiveThreshold = thresholdTable[position] ?? 2;
 
   // ショートスタック（< 15BB）: push or fold
   if (bbDepth < 15) {
