@@ -133,6 +133,38 @@ describe('LobbyView', () => {
     expect(inputs).toHaveLength(9);
   });
 
+  it('renders ソロ tab in lobby mode selector', () => {
+    render(<LobbyView />);
+    expect(screen.getByText('ソロ')).toBeTruthy();
+  });
+
+  it('shows SoloSetupForm when ソロ tab is selected', () => {
+    render(<LobbyView />);
+    fireEvent.press(screen.getByText('ソロ'));
+    expect(screen.getByPlaceholderText('あなたの名前')).toBeTruthy();
+  });
+
+  it('navigates to game with botCount = totalCount - 1 in solo mode', async () => {
+    render(<LobbyView />);
+    fireEvent.press(screen.getByText('ソロ'));
+    fireEvent.changeText(screen.getByPlaceholderText('あなたの名前'), 'Alice');
+    fireEvent.press(screen.getByTestId('solo-count-btn-4'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('solo-start-btn'));
+    });
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/game',
+      params: {
+        playerNames: JSON.stringify(['Alice']),
+        initialChips: '1000',
+        sb: '5',
+        bb: '10',
+        mode: 'hotseat',
+        botCount: '3',
+      },
+    });
+  });
+
   describe('chip reset', () => {
     it('renders chip reset button in local mode', () => {
       render(<LobbyView />);

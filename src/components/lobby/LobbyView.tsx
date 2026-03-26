@@ -7,6 +7,7 @@ import { Colors } from '../../theme/colors';
 import { LobbyModeSelector, LobbyMode } from './LobbyModeSelector';
 import { HostSetupForm } from './HostSetupForm';
 import { JoinSetupForm } from './JoinSetupForm';
+import { SoloSetupForm } from './SoloSetupForm';
 import { repository } from '../../services/persistence';
 
 const PLAYER_COUNTS = [2, 3, 4, 5, 6, 7, 8, 9];
@@ -127,6 +128,26 @@ export function LobbyView() {
     router.push({
       pathname: '/ble-join',
       params: { playerName },
+    });
+  };
+
+  const handleSoloSubmit = (settings: {
+    playerName: string;
+    totalCount: number;
+    initialChips: string;
+    sb: string;
+    bb: string;
+  }) => {
+    router.push({
+      pathname: '/game',
+      params: {
+        playerNames: JSON.stringify([settings.playerName]),
+        initialChips: settings.initialChips,
+        sb: settings.sb,
+        bb: settings.bb,
+        mode: 'hotseat',
+        botCount: String(settings.totalCount - 1),
+      },
     });
   };
 
@@ -258,6 +279,10 @@ export function LobbyView() {
 
       {lobbyMode === 'join' && (
         <JoinSetupForm onSubmit={handleJoinSubmit} />
+      )}
+
+      {lobbyMode === 'solo' && (
+        <SoloSetupForm onSubmit={handleSoloSubmit} />
       )}
     </ScrollView>
   );
