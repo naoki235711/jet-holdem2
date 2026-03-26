@@ -52,6 +52,7 @@ export class GameLoop {
         p.status = 'active';
         p.bet = 0;
         p.cards = [];
+        p.cardsRevealed = undefined;
       }
     }
 
@@ -123,6 +124,32 @@ export class GameLoop {
     }
 
     return true;
+  }
+
+  /**
+   * Advance from an allIn* phase to the next one (dealing the next street),
+   * or from allInRiver to showdown.
+   * Called by the service layer after a timer fires in the UI.
+   */
+  advanceRunout(): void {
+    switch (this._phase) {
+      case 'allInFlop':
+        this.deck.deal(); // Burn
+        this._community.push(this.deck.deal()); // Turn card
+        this._phase = 'allInTurn';
+        break;
+      case 'allInTurn':
+        this.deck.deal(); // Burn
+        this._community.push(this.deck.deal()); // River card
+        this._phase = 'allInRiver';
+        break;
+      case 'allInRiver':
+        this._phase = 'showdown';
+        this.bettingRound = null;
+        break;
+      default:
+        throw new Error(`advanceRunout called in non-allIn phase: ${this._phase}`);
+    }
   }
 
   resolveShowdown(): ShowdownResult {
@@ -277,14 +304,25 @@ export class GameLoop {
         return; // No new betting round for showdown
     }
 
-    // Start new betting round (post-flop: first active player after dealer)
+    // After dealing, check if all remaining players are all-in
     const activePlayers = this._players.filter(p => p.status === 'active');
     if (activePlayers.length <= 1) {
-      // All but one (or zero) are all-in — skip to next phase
-      this.advancePhase();
-      return;
+      // Map the just-dealt street to its allIn* counterpart
+      const allInPhaseMap: Partial<Record<Phase, Phase>> = {
+        flop: 'allInFlop',
+        turn: 'allInTurn',
+        river: 'allInRiver',
+      };
+      const allInPhase = allInPhaseMap[this._phase];
+      if (allInPhase) {
+        this._phase = allInPhase;
+        this.bettingRound = null;
+        this.revealCardsForAllIn();
+        return;
+      }
     }
 
+    // Start new betting round (post-flop: first active player after dealer)
     const seatOrder = activePlayers.map(p => p.seat);
     const dealerIdx = seatOrder.indexOf(this._dealer);
     // Find first active player after dealer
@@ -298,6 +336,14 @@ export class GameLoop {
       firstToAct = seatOrder[(dealerIdx + 1) % seatOrder.length];
     }
     this.bettingRound = new BettingRound(this._players, firstToAct, 0);
+  }
+
+  private revealCardsForAllIn(): void {
+    for (const p of this._players) {
+      if (p.status !== 'folded' && p.status !== 'out') {
+        p.cardsRevealed = true;
+      }
+    }
   }
 
   private awardPotToLastPlayer(player: Player): void {

@@ -2,7 +2,7 @@ import { Card, Phase, Pot, Blinds, PlayerStatus, ActionType } from '../../gameEn
 
 export const GAME_PROTOCOL_VERSION = 1;
 
-const VALID_PHASES: Phase[] = ['waiting', 'preflop', 'flop', 'turn', 'river', 'showdown', 'roundEnd', 'gameOver'];
+const VALID_PHASES: Phase[] = ['waiting', 'preflop', 'flop', 'turn', 'river', 'allInFlop', 'allInTurn', 'allInRiver', 'showdown', 'roundEnd', 'gameOver'];
 const VALID_STATUSES: PlayerStatus[] = ['active', 'folded', 'allIn', 'out'];
 const VALID_ACTIONS: ActionType[] = ['fold', 'check', 'call', 'raise', 'allIn'];
 
@@ -15,6 +15,7 @@ export type GameStatePlayer = {
   status: PlayerStatus;
   bet: number;
   cards: Card[];
+  cardsRevealed?: boolean;
 };
 
 export type GameHostMessage =
@@ -95,7 +96,8 @@ function isGameStatePlayerArray(value: unknown): value is GameStatePlayer[] {
       typeof p.status === 'string' &&
       VALID_STATUSES.includes(p.status as PlayerStatus) &&
       typeof p.bet === 'number' &&
-      isCardArray(p.cards),
+      isCardArray(p.cards) &&
+      (p.cardsRevealed === undefined || typeof p.cardsRevealed === 'boolean'),
   );
 }
 

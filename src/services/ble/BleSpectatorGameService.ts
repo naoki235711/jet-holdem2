@@ -49,6 +49,10 @@ export class BleSpectatorGameService implements GameService {
     // no-op
   }
 
+  advanceRunout(): void {
+    // no-op: host drives runout; spectator observes via stateUpdate
+  }
+
   subscribe(listener: (state: GameState) => void): () => void {
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
@@ -86,6 +90,7 @@ export class BleSpectatorGameService implements GameService {
             status: p.status,
             bet: p.bet,
             cards: p.cards,
+            cardsRevealed: p.cardsRevealed,
           })),
           foldWin: msg.foldWin,
         };

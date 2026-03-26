@@ -24,7 +24,7 @@ export function PlayerSeat({ seat, compact = false }: PlayerSeatProps) {
   const isFolded = player.status === 'folded';
   const isAllIn = player.status === 'allIn';
   const isDealer = state.dealer === seat;
-  const showCards = mode === 'debug' || seat === viewingSeat;
+  const showCards = mode === 'debug' || seat === viewingSeat || player.cardsRevealed === true;
   const timerIsActive = isActive && timerRemainingMs !== null;
 
   return (

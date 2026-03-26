@@ -91,6 +91,45 @@ describe('GameProtocol', () => {
       expect(validateGameHostMessage({ type: 'roundEnd' })).toBeNull();
     });
 
+    it('accepts stateUpdate with allInFlop phase', () => {
+      expect(validateGameHostMessage({ ...validStateUpdate, phase: 'allInFlop' })).not.toBeNull();
+    });
+
+    it('accepts stateUpdate with allInTurn phase', () => {
+      expect(validateGameHostMessage({ ...validStateUpdate, phase: 'allInTurn' })).not.toBeNull();
+    });
+
+    it('accepts stateUpdate with allInRiver phase', () => {
+      expect(validateGameHostMessage({ ...validStateUpdate, phase: 'allInRiver' })).not.toBeNull();
+    });
+
+    it('accepts stateUpdate where a player has cardsRevealed=true', () => {
+      const msg = {
+        ...validStateUpdate,
+        phase: 'allInFlop',
+        players: [
+          { seat: 0, name: 'Alice', chips: 995, status: 'active', bet: 5, cards: ['Ah', 'Kd'], cardsRevealed: true },
+          { seat: 1, name: 'Bob', chips: 990, status: 'allIn', bet: 10, cards: ['2h', '7d'], cardsRevealed: true },
+        ],
+      };
+      expect(validateGameHostMessage(msg)).not.toBeNull();
+    });
+
+    it('accepts stateUpdate where cardsRevealed is undefined (omitted)', () => {
+      // existing validStateUpdate has no cardsRevealed — should still pass
+      expect(validateGameHostMessage(validStateUpdate)).not.toBeNull();
+    });
+
+    it('rejects stateUpdate where cardsRevealed is not boolean', () => {
+      const msg = {
+        ...validStateUpdate,
+        players: [
+          { seat: 0, name: 'Alice', chips: 995, status: 'active', bet: 5, cards: [], cardsRevealed: 'yes' },
+        ],
+      };
+      expect(validateGameHostMessage(msg)).toBeNull();
+    });
+
     describe('rematch', () => {
       it('accepts valid rematch message', () => {
         expect(validateGameHostMessage({ type: 'rematch', seq: 5 }))

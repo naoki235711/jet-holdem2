@@ -22,6 +22,15 @@ function advanceToPhase(gameLoop: GameLoop, targetPhase: string): void {
         state = gameLoop.getState();
         continue;
       }
+      if (
+        state.phase === 'allInFlop' ||
+        state.phase === 'allInTurn' ||
+        state.phase === 'allInRiver'
+      ) {
+        gameLoop.advanceRunout();
+        state = gameLoop.getState();
+        continue;
+      }
       break;
     }
     const activePlayer = state.players.find(p => p.seat === state.activePlayer)!;

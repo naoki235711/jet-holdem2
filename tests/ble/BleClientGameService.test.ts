@@ -207,6 +207,49 @@ describe('BleClientGameService', () => {
     });
   });
 
+  describe('advanceRunout', () => {
+    it('is a no-op (does not throw)', () => {
+      sendMessage(transport, 'gameState', makeStateUpdate());
+      expect(() => service.advanceRunout()).not.toThrow();
+    });
+  });
+
+  describe('cardsRevealed passthrough', () => {
+    it('preserves cardsRevealed=true from stateUpdate message', () => {
+      const msg = makeStateUpdate({
+        phase: 'allInFlop',
+        players: [
+          { seat: 0, name: 'Host', chips: 800, status: 'allIn', bet: 0, cards: ['Ah', 'Kd'], cardsRevealed: true },
+          { seat: 1, name: 'Alice', chips: 0, status: 'allIn', bet: 0, cards: ['2h', '7c'], cardsRevealed: true },
+          { seat: 2, name: 'Bob', chips: 1000, status: 'folded', bet: 0, cards: [] },
+        ],
+      });
+      sendMessage(transport, 'gameState', msg);
+      const state = service.getState();
+      const seat0 = state.players.find(p => p.seat === 0)!;
+      const seat2 = state.players.find(p => p.seat === 2)!;
+      expect(seat0.cardsRevealed).toBe(true);
+      expect(seat2.cardsRevealed).toBeUndefined();
+    });
+
+    it('exposes revealed hole cards for non-self players', () => {
+      // service has mySeat = 1
+      const msg = makeStateUpdate({
+        phase: 'allInFlop',
+        players: [
+          { seat: 0, name: 'Host', chips: 800, status: 'allIn', bet: 0, cards: ['Ah', 'Kd'], cardsRevealed: true },
+          { seat: 1, name: 'Alice', chips: 0, status: 'allIn', bet: 0, cards: [], cardsRevealed: true },
+          { seat: 2, name: 'Bob', chips: 1000, status: 'folded', bet: 0, cards: [] },
+        ],
+      });
+      sendMessage(transport, 'gameState', msg);
+      const state = service.getState();
+      // Seat 0's cards come from the broadcast (cardsRevealed=true → host sent real cards)
+      const seat0 = state.players.find(p => p.seat === 0)!;
+      expect(seat0.cards).toEqual(['Ah', 'Kd']);
+    });
+  });
+
   describe('no-op methods', () => {
     it('startGame is no-op', () => {
       expect(() => service.startGame(['A', 'B'], { sb: 5, bb: 10 }, 1000)).not.toThrow();

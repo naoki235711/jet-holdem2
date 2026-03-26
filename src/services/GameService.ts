@@ -26,6 +26,7 @@ export interface GameService {
   handleAction(seat: number, action: PlayerAction): ActionResult;
   resolveShowdown(): ShowdownResult;
   prepareNextRound(): void;
+  advanceRunout(): void;
 
   subscribe(listener: (state: GameState) => void): () => void;
 

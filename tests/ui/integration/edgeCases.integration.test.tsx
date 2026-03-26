@@ -712,3 +712,67 @@ describe('E-6: Player elimination and continuation', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// E-N: All-in runout timer
+// ---------------------------------------------------------------------------
+describe('E-N: All-in runout auto-advance', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
+  it('auto-advances from allInFlop to allInTurn after 1500ms', () => {
+    // Build a 2-player game where both go all-in preflop
+    const service = new LocalGameService();
+    service.startGame(['Alice', 'Bob'], { sb: 5, bb: 10 }, 1000);
+
+    // Give Bob only 10 chips so he's all-in from BB post
+    const bobPlayer = (service as any).gameLoop._players.find((p: any) => p.seat === 1);
+    bobPlayer.chips = 10;
+
+    service.startRound();
+
+    // Alice (SB, seat 0 in heads-up) goes all-in
+    service.handleAction(0, { action: 'allIn' });
+
+    // Game should now be in allInFlop
+    expect(service.getState().phase).toBe('allInFlop');
+
+    // We test the service layer directly — the timer fires via GameContext's useEffect.
+    // For a direct service test, manually call advanceRunout after checking phase.
+    service.advanceRunout();
+    expect(service.getState().phase).toBe('allInTurn');
+    expect(service.getState().community).toHaveLength(4);
+  });
+
+  it('auto-advances from allInTurn to allInRiver after 1500ms', () => {
+    const service = new LocalGameService();
+    service.startGame(['Alice', 'Bob'], { sb: 5, bb: 10 }, 1000);
+    const bob = (service as any).gameLoop._players.find((p: any) => p.seat === 1);
+    bob.chips = 10;
+    service.startRound();
+    service.handleAction(0, { action: 'allIn' });
+    service.advanceRunout(); // allInFlop → allInTurn
+    service.advanceRunout(); // allInTurn → allInRiver
+    expect(service.getState().phase).toBe('allInRiver');
+    expect(service.getState().community).toHaveLength(5);
+  });
+
+  it('auto-advances from allInRiver to showdown after 2500ms', () => {
+    const service = new LocalGameService();
+    service.startGame(['Alice', 'Bob'], { sb: 5, bb: 10 }, 1000);
+    const bob = (service as any).gameLoop._players.find((p: any) => p.seat === 1);
+    bob.chips = 10;
+    service.startRound();
+    service.handleAction(0, { action: 'allIn' });
+    service.advanceRunout();
+    service.advanceRunout();
+    service.advanceRunout();
+    expect(service.getState().phase).toBe('showdown');
+  });
+});

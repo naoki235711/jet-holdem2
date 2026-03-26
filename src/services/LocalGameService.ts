@@ -137,6 +137,12 @@ export class LocalGameService implements GameService {
     this.notify();
   }
 
+  advanceRunout(): void {
+    if (!this.gameLoop) throw new Error('Game not started');
+    this.gameLoop.advanceRunout();
+    this.notify();
+  }
+
   subscribe(listener: (state: GameState) => void): () => void {
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
