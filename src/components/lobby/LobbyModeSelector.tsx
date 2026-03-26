@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/colors';
 
-export type LobbyMode = 'local' | 'host' | 'join';
+export type LobbyMode = 'local' | 'host' | 'join' | 'solo';
 
 type LobbyModeSelectorProps = {
   selected: LobbyMode;
@@ -11,6 +11,7 @@ type LobbyModeSelectorProps = {
 
 const TABS: { mode: LobbyMode; label: string }[] = [
   { mode: 'local', label: 'ローカル' },
+  { mode: 'solo', label: 'ソロ' },
   { mode: 'host', label: 'ホスト作成' },
   { mode: 'join', label: 'ゲーム参加' },
 ];

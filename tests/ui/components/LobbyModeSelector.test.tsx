@@ -30,4 +30,16 @@ describe('LobbyModeSelector', () => {
     fireEvent.press(screen.getByText('ローカル'));
     expect(onSelect).toHaveBeenCalledWith('local');
   });
+
+  it('renders four tabs including ソロ', () => {
+    render(<LobbyModeSelector selected="local" onSelect={jest.fn()} />);
+    expect(screen.getByText('ソロ')).toBeTruthy();
+  });
+
+  it('calls onSelect with "solo" when ソロ is pressed', () => {
+    const onSelect = jest.fn();
+    render(<LobbyModeSelector selected="local" onSelect={onSelect} />);
+    fireEvent.press(screen.getByText('ソロ'));
+    expect(onSelect).toHaveBeenCalledWith('solo');
+  });
 });
