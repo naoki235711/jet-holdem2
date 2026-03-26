@@ -110,6 +110,7 @@ function GameView() {
   const [nextPlayerName, setNextPlayerName] = useState('');
   const prevActiveRef = React.useRef<number>(-1);
   const [showChart, setShowChart] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!state || mode !== 'hotseat') return;
@@ -150,7 +151,7 @@ function GameView() {
       <ResultOverlay />
       <TouchableOpacity
         testID="rfi-chart-button"
-        style={styles.chartButton}
+        style={[styles.chartButton, { top: 8 + insets.top }]}
         onPress={() => setShowChart(true)}
       >
         <Text style={styles.chartButtonText}>RFI</Text>
