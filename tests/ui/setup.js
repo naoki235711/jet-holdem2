@@ -19,3 +19,4 @@ jest.mock('react-native/Libraries/Modal/Modal', () => {
     default: ({ children, ...props }) => React.createElement(View, props, children),
   };
 });
+

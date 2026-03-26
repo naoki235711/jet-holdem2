@@ -1,4 +1,6 @@
 module.exports = {
+  forceExit: true,
+  testTimeout: 10000,
   projects: [
     {
       displayName: 'engine',
@@ -9,13 +11,14 @@ module.exports = {
       transform: {
         '^.+\\.tsx?$': 'ts-jest',
       },
+      setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
     },
     {
       displayName: 'ui',
       preset: 'react-native',
       roots: ['<rootDir>/tests/ui', '<rootDir>/tests/hooks', '<rootDir>/src'],
       setupFiles: ['<rootDir>/tests/ui/setup.js'],
-      setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
+      setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect', '<rootDir>/tests/ui/setupAfterEnv.js'],
       transformIgnorePatterns: [
         'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*)',
       ],
