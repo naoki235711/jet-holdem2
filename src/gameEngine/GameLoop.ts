@@ -48,6 +48,11 @@ export class GameLoop {
     this._seq++;
 
     for (const p of this._players) {
+      // Clear cards for all players (including out players)
+      // to avoid lingering cards from previous rounds
+      p.cards = [];
+      p.cardsRevealed = undefined;
+
       // Eliminate players with 0 chips (handles savedChips scenario where
       // prepareNextRound was not called before startRound)
       if (p.chips === 0 && p.status !== 'out') {
@@ -56,8 +61,6 @@ export class GameLoop {
       if (p.status !== 'out') {
         p.status = 'active';
         p.bet = 0;
-        p.cards = [];
-        p.cardsRevealed = undefined;
       }
     }
 
