@@ -113,7 +113,7 @@ function GameView() {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (!state || mode !== 'hotseat') return;
+    if (!state || mode !== 'hotseat' || state.players.some(p => p.isBot)) return;
 
     const currentActive = state.activePlayer;
     const prevActive = prevActiveRef.current;
