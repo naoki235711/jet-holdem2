@@ -59,9 +59,9 @@ describe('decidePreflopAction — RFI', () => {
     expect(decidePreflopAction(state, ['Ah', 'Ad'], 0).action).toBe('allIn');
   });
 
-  it('6人卓 BTN JTo → fold（マルチウェイ補正でレンジ絞り）', () => {
-    // numActive=6, penaltyGroups=3, BTN threshold=6 → effectiveThreshold=3
-    // JTo = MATRIX[4][3] = 62 → group 6 > 3 → fold
+  it('6人卓 BTN JTo → RFI 可能（group 6 ≤ threshold 6）', () => {
+    // numActive=6, OPEN_THRESHOLD_BY_COUNT[6].BTN=6 → effectiveThreshold=6
+    // JTo = MATRIX[4][3]=62 → group 6 ≤ 6 → raise (freqTier=2, 87%)
     const players: Player[] = [
       { seat: 0, name: 'BTN', chips: 990, status: 'active', bet: 0,  cards: [] },
       { seat: 1, name: 'SB',  chips: 990, status: 'active', bet: 5,  cards: [] },
@@ -71,7 +71,76 @@ describe('decidePreflopAction — RFI', () => {
       { seat: 5, name: 'CO',  chips: 990, status: 'active', bet: 0,  cards: [] },
     ];
     const state = makeState({ players, dealer: 0, currentBet: 10, activePlayer: 0 });
-    expect(decidePreflopAction(state, ['Jh', 'Td'], 0).action).toBe('fold');
+    // 500回試行して大半が raise になることを確認（freqTier=2 → 87%）
+    let raises = 0;
+    for (let i = 0; i < 500; i++) {
+      const r = decidePreflopAction(state, ['Jh', 'Td'], 0);
+      if (r.action === 'raise' || r.action === 'allIn') raises++;
+    }
+    expect(raises / 500).toBeGreaterThan(0.70); // 87% ± 許容
+  });
+
+  it('9人卓 HJ QJs → RFI（group 3 ≤ threshold 4）', () => {
+    // OPEN_THRESHOLD_BY_COUNT[9].HJ=4, QJs=group3,tier1 → 100% raise
+    const players: Player[] = [
+      { seat: 0, name: 'BTN',   chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 1, name: 'SB',    chips: 990, status: 'active', bet: 5,  cards: [] },
+      { seat: 2, name: 'BB',    chips: 990, status: 'active', bet: 10, cards: [] },
+      { seat: 3, name: 'UTG',   chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 4, name: 'UTG+1', chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 5, name: 'UTG+2', chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 6, name: 'LJ',    chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 7, name: 'HJ',    chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 8, name: 'CO',    chips: 990, status: 'active', bet: 0,  cards: [] },
+    ];
+    // dealer=8=CO → BTN=seat0, SB=seat1, BB=seat2, UTG=seat3, ..., HJ=seat7
+    const state = makeState({ players, dealer: 8, currentBet: 10, activePlayer: 7 });
+    const result = decidePreflopAction(state, ['Qh', 'Jh'], 7);
+    expect(['raise', 'allIn']).toContain(result.action);
+  });
+
+  it('9人卓 BTN A8o → RFI（group 5 ≤ threshold 6）', () => {
+    // OPEN_THRESHOLD_BY_COUNT[9].BTN=6, A8o=group5,tier1 → 100% raise
+    const players: Player[] = [
+      { seat: 0, name: 'BTN',   chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 1, name: 'SB',    chips: 990, status: 'active', bet: 5,  cards: [] },
+      { seat: 2, name: 'BB',    chips: 990, status: 'active', bet: 10, cards: [] },
+      { seat: 3, name: 'UTG',   chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 4, name: 'UTG+1', chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 5, name: 'UTG+2', chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 6, name: 'LJ',    chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 7, name: 'HJ',    chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 8, name: 'CO',    chips: 990, status: 'active', bet: 0,  cards: [] },
+    ];
+    // dealer=8=CO → BTN=seat0
+    const state = makeState({ players, dealer: 8, currentBet: 10, activePlayer: 0 });
+    const result = decidePreflopAction(state, ['Ah', '8d'], 0);
+    expect(['raise', 'allIn']).toContain(result.action);
+  });
+
+  it('4人卓 UTG QJo → RFI（group 5 ≤ threshold 5）', () => {
+    // OPEN_THRESHOLD_BY_COUNT[4].UTG=5, QJo=group5,tier1 → 100% raise
+    const players: Player[] = [
+      { seat: 0, name: 'BTN', chips: 990, status: 'active', bet: 0,  cards: [] },
+      { seat: 1, name: 'SB',  chips: 990, status: 'active', bet: 5,  cards: [] },
+      { seat: 2, name: 'BB',  chips: 990, status: 'active', bet: 10, cards: [] },
+      { seat: 3, name: 'UTG', chips: 990, status: 'active', bet: 0,  cards: [] },
+    ];
+    // dealer=0=BTN → UTG=seat3
+    const state = makeState({ players, dealer: 0, currentBet: 10, activePlayer: 3 });
+    const result = decidePreflopAction(state, ['Qh', 'Jd'], 3);
+    expect(['raise', 'allIn']).toContain(result.action);
+  });
+
+  it('2人卓 BTN J8s → RFI（group 6 ≤ threshold 7）', () => {
+    // OPEN_THRESHOLD_BY_COUNT[2].BTN=7, J8s=group6,tier2 → 87% raise
+    const state = makeState({ currentBet: 10, activePlayer: 0 });
+    let raises = 0;
+    for (let i = 0; i < 500; i++) {
+      const r = decidePreflopAction(state, ['Jh', '8h'], 0);
+      if (r.action === 'raise' || r.action === 'allIn') raises++;
+    }
+    expect(raises / 500).toBeGreaterThan(0.70); // 87% ± 許容
   });
 });
 
